@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "Bash(dir /b \"c:\\\\Users\\\\PcCom\\\\Documents\\\\daniel-metro-portfolio\")",
+      "Bash(timeout:*)",
+      "Bash(npm run lint)",
+      "Bash(npx next build:*)",
+      "Bash(for:*)",
+      "Bash(done)",
+      "Bash(ls:*)",
+      "Bash(dir:*)",
+      "Bash(where /r \"c:\\\\Users\\\\PcCom\" \"*Light version report*\")",
+      "Bash(powershell -Command:*)",
+      "Bash(copy:*)"
+    ]
+  }
+}

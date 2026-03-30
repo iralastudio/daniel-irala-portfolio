@@ -1,0 +1,287 @@
+@import "tailwindcss";
+
+:root {
+  /* Brand Colors */
+  --line-profile: #FF78C5;
+  --line-projects: #B996F0;
+  --line-thinking: #84E9FF;
+
+  /* Theme Colors */
+  --background: #0a0a0a;
+  --foreground: #ededed;
+
+  /* Accessibility Toggles */
+  --dyslexia-font: 'OpenDyslexic', 'Open Sans', sans-serif;
+  --standard-font-body: var(--font-body);
+  --standard-font-heading: var(--font-heading);
+
+  /* ===================================
+     GLASS DESIGN SYSTEM
+     Systematic layers for service design thinking
+     ================================== */
+
+  /* Layer 1: Backstage (Foundational) - Subtle background panels */
+  --glass-bg-1: rgba(255, 255, 255, 0.03);
+  --glass-border-1: rgba(255, 255, 255, 0.08);
+  --glass-blur-1: 12px;
+  --glass-shadow-1: 0 4px 16px rgba(0, 0, 0, 0.3);
+
+  /* Layer 2: Frontstage (Interactive) - Medium emphasis touchpoints */
+  --glass-bg-2: rgba(255, 255, 255, 0.08);
+  --glass-border-2: rgba(255, 255, 255, 0.15);
+  --glass-blur-2: 16px;
+  --glass-shadow-2: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --glass-highlight-2: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+
+  /* Layer 3: User Journey (Focus) - High emphasis active states */
+  --glass-bg-3: rgba(255, 255, 255, 0.12);
+  --glass-border-3: rgba(255, 255, 255, 0.25);
+  --glass-blur-3: 24px;
+  --glass-shadow-3: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --glass-highlight-3: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+
+  /* Glass supports flag - will be set if browser supports backdrop-filter */
+  --glass-enabled: 0;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  
+  --color-line-profile: var(--line-profile);
+  --color-line-projects: var(--line-projects);
+  --color-line-thinking: var(--line-thinking);
+
+  --font-heading: var(--standard-font-heading);
+  --font-body: var(--standard-font-body);
+}
+
+/* Progressive Enhancement: Detect backdrop-filter support */
+@supports (backdrop-filter: blur(1px)) {
+  :root {
+    --glass-enabled: 1;
+  }
+}
+
+/* Accessibility Modes */
+html.dyslexia-font {
+  --standard-font-body: 'OpenDyslexic', sans-serif;
+  --standard-font-heading: 'OpenDyslexic', sans-serif;
+}
+
+html.high-contrast {
+  --background: #000000;
+  --foreground: #ffffff;
+  --line-profile: #ff00ff;
+  --line-projects: #aa00ff;
+  --line-thinking: #00ffff;
+
+  /* HIGH CONTRAST MODE: Disable glass, use solid backgrounds */
+  --glass-bg-1: rgba(0, 0, 0, 1);
+  --glass-bg-2: rgba(40, 40, 40, 1);
+  --glass-bg-3: rgba(60, 60, 60, 1);
+  --glass-border-1: rgba(255, 255, 255, 1);
+  --glass-border-2: rgba(255, 255, 255, 1);
+  --glass-border-3: rgba(255, 255, 255, 1);
+  --glass-blur-1: 0px;
+  --glass-blur-2: 0px;
+  --glass-blur-3: 0px;
+  --glass-enabled: 0;
+}
+
+html.reduce-motion * {
+  animation-duration: 0.001s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001s !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+
+/* ===================================
+   GLASS UTILITY CLASSES
+   Systematic, reusable glass components
+   ================================== */
+
+/* Layer 1: Backstage - Foundational panels */
+.glass-backstage {
+  background: var(--glass-bg-1);
+  border: 1px solid var(--glass-border-1);
+  box-shadow: var(--glass-shadow-1);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .glass-backstage {
+    backdrop-filter: blur(var(--glass-blur-1));
+    -webkit-backdrop-filter: blur(var(--glass-blur-1));
+  }
+}
+
+/* Layer 2: Frontstage - Interactive touchpoints */
+.glass-frontstage {
+  background: var(--glass-bg-2);
+  border: 1px solid var(--glass-border-2);
+  box-shadow: var(--glass-shadow-2), var(--glass-highlight-2);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .glass-frontstage {
+    backdrop-filter: blur(var(--glass-blur-2));
+    -webkit-backdrop-filter: blur(var(--glass-blur-2));
+  }
+}
+
+/* Layer 3: User Journey - Focus states */
+.glass-journey {
+  background: var(--glass-bg-3);
+  border: 1px solid var(--glass-border-3);
+  box-shadow: var(--glass-shadow-3), var(--glass-highlight-3);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .glass-journey {
+    backdrop-filter: blur(var(--glass-blur-3));
+    -webkit-backdrop-filter: blur(var(--glass-blur-3));
+  }
+}
+
+/* Glass Orb - For metro stops and interactive dots */
+.glass-orb {
+  position: relative;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), transparent 60%);
+}
+
+.glass-orb::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--glass-bg-2);
+  border: 1px solid var(--glass-border-2);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .glass-orb::before {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
+/* ===================================
+   PREMIUM SCROLLBAR SYSTEM
+   Context-aware, minimal scrollbar design
+   =================================== */
+
+/* CSS Custom Property for dynamic scrollbar color */
+:root {
+  --scrollbar-thumb-color: #4b5563;
+  --scrollbar-thumb-hover: var(--line-thinking);
+}
+
+/* Premium Scrollbar - Slim, floating design */
+.premium-scrollbar {
+  scroll-behavior: smooth;
+
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb-color) transparent;
+}
+
+.premium-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.premium-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 100vh;
+}
+
+.premium-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-color);
+  border-radius: 100vh;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+
+.premium-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  box-shadow: 0 0 8px var(--scrollbar-thumb-hover);
+}
+
+.premium-scrollbar::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-hover);
+  box-shadow: 0 0 12px var(--scrollbar-thumb-hover);
+}
+
+/* Corner piece (where vertical & horizontal scrollbars meet) */
+.premium-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Line-specific scrollbar variants */
+.premium-scrollbar--profile {
+  --scrollbar-thumb-hover: var(--line-profile);
+}
+
+.premium-scrollbar--projects {
+  --scrollbar-thumb-hover: var(--line-projects);
+}
+
+.premium-scrollbar--thinking {
+  --scrollbar-thumb-hover: var(--line-thinking);
+}
+
+/* Legacy custom-scrollbar (kept for backwards compatibility) */
+.custom-scrollbar {
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #4b5563 transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 100vh;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 100vh;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--line-profile);
+}
+
+/* Hide scrollbar completely (for pill menus, etc.) */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
