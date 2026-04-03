@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Providers } from "./providers";
 import { Modal } from "@/components/modal/Modal";
 import { AccessibilityPanel } from "@/components/accessibility/AccessibilityPanel";
-import { ReadingGuide } from "@/components/accessibility/ReadingGuide";
 import { montserrat, openSans } from "@/styles/fonts";
 import { cn } from "@/lib/cn";
 import "./globals.css";
@@ -30,7 +29,6 @@ export default function RootLayout({
           {children}
           <Modal />
           <AccessibilityPanel />
-          <ReadingGuide />
         </Providers>
       </body>
     </html>

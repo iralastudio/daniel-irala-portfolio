@@ -6,9 +6,9 @@ import { AccessibilitySettings } from '@/types/accessibility';
 const defaultSettings: AccessibilitySettings = {
     dyslexiaFont: false,
     reduceMotion: false,
-    simplifyMap: false,
     highContrast: false,
-    readingGuide: false,
+    textToVoice: false,
+    textScale: 'normal',
 };
 
 interface AccessibilityContextType {
@@ -18,13 +18,13 @@ interface AccessibilityContextType {
         value: AccessibilitySettings[K]
     ) => void;
     resetSettings: () => void;
+    announce: (text: string) => void;
 }
 
 const AccessibilityContext = createContext<AccessibilityContextType | null>(null);
 
 export function AccessibilityProvider({ children }: { children: ReactNode }) {
     const [settings, setSettings] = useState<AccessibilitySettings>(() => {
-        // Fallback for SSR
         if (typeof window === 'undefined') return defaultSettings;
 
         const stored = localStorage.getItem('accessibility-settings');
@@ -32,7 +32,9 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
 
         if (stored) {
             try {
-                initialSettings = JSON.parse(stored);
+                const parsed = JSON.parse(stored);
+                // Merge with defaults to handle new fields
+                initialSettings = { ...defaultSettings, ...parsed };
             } catch {
                 console.error('Failed to parse accessibility settings');
             }
@@ -52,30 +54,24 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
 
     const [isHydrated, setIsHydrated] = useState(false);
 
-    // Initial hydration flag
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsHydrated(true);
     }, []);
 
-    // Save to localStorage when settings change
+    // Save to localStorage and apply CSS/TTS when settings change
     useEffect(() => {
         if (isHydrated) {
             localStorage.setItem('accessibility-settings', JSON.stringify(settings));
 
             // Apply CSS custom properties
-            document.documentElement.classList.toggle(
-                'dyslexia-font',
-                settings.dyslexiaFont
-            );
-            document.documentElement.classList.toggle(
-                'reduce-motion',
-                settings.reduceMotion
-            );
-            document.documentElement.classList.toggle(
-                'high-contrast',
-                settings.highContrast
-            );
+            const doc = document.documentElement;
+            doc.classList.toggle('dyslexia-font', settings.dyslexiaFont);
+            doc.classList.toggle('reduce-motion', settings.reduceMotion);
+            doc.classList.toggle('high-contrast', settings.highContrast);
+            
+            // Text Scale classes
+            doc.classList.remove('text-scale-normal', 'text-scale-large', 'text-scale-extra-large');
+            doc.classList.add(`text-scale-${settings.textScale}`);
         }
     }, [settings, isHydrated]);
 
@@ -90,12 +86,25 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
         setSettings(defaultSettings);
     }, []);
 
-    // CRITICAL: Memoize the context value to prevent unnecessary re-renders
+    const announce = useCallback((text: string) => {
+        if (!settings.textToVoice || typeof window === 'undefined') return;
+
+        // Cancel previous speech
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.9; // Slightly slower for better clarity
+        utterance.pitch = 1.0;
+        
+        window.speechSynthesis.speak(utterance);
+    }, [settings.textToVoice]);
+
     const contextValue = useMemo(() => ({
         settings,
         updateSetting,
-        resetSettings
-    }), [settings, updateSetting, resetSettings]);
+        resetSettings,
+        announce
+    }), [settings, updateSetting, resetSettings, announce]);
 
     return (
         <AccessibilityContext.Provider value={contextValue}>

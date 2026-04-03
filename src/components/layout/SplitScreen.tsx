@@ -13,12 +13,15 @@ export function SplitScreen({ children }: SplitScreenProps) {
         <div className="relative min-h-screen flex flex-col md:flex-row overflow-hidden">
 
             {/* Left Panel: Content / Intro with Glass Effect */}
-            <div className="w-full md:w-[40%] flex flex-col justify-between order-1 md:order-1 relative z-10 transition-all duration-500 ease-in-out">
+            <div className="w-full md:w-[40%] h-auto md:h-screen flex flex-col order-1 md:order-1 relative z-10 transition-all duration-500 ease-in-out border-b md:border-b-0 md:border-r border-white/10">
                 {/* Glass effect background */}
-                <div className="absolute inset-0 bg-[rgba(0,0,0,0.6)] backdrop-blur-[20px] md:border-r md:border-white/10 pointer-events-none -z-10" />
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-[20px] pointer-events-none -z-10" />
 
-                <Header />
-                <div className="hidden md:block">
+                <div className="flex-1">
+                    <Header />
+                </div>
+                
+                <div className="hidden md:block border-t border-white/5 bg-black/20 backdrop-blur-md">
                     <Footer />
                 </div>
             </div>

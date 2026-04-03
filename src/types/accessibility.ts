@@ -1,7 +1,9 @@
+export type TextScale = 'normal' | 'large' | 'extra-large';
+
 export interface AccessibilitySettings {
     dyslexiaFont: boolean;
     reduceMotion: boolean;
-    simplifyMap: boolean;
     highContrast: boolean;
-    readingGuide: boolean;
+    textToVoice: boolean;
+    textScale: TextScale;
 }

@@ -69,6 +69,14 @@ html.dyslexia-font {
   --standard-font-heading: 'OpenDyslexic', sans-serif;
 }
 
+html.text-scale-large {
+  font-size: 112.5%; /* 18px base */
+}
+
+html.text-scale-extra-large {
+  font-size: 125%; /* 20px base */
+}
+
 html.high-contrast {
   --background: #000000;
   --foreground: #ffffff;

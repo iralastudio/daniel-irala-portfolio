@@ -45,7 +45,7 @@ export const MetroStop = memo(function MetroStop({
     isMobile = false
 }: MetroStopProps) {
     const { selectedLine, activeStop } = useMetroMap();
-    const { settings } = useAccessibility();
+    const { settings, announce } = useAccessibility();
     const { openModal, isOpen } = useModal();
 
     // Memoize computed values using centralized context-aware utilities
@@ -77,16 +77,18 @@ export const MetroStop = memo(function MetroStop({
     // Memoize event handlers
     const handleClick = useCallback(() => {
         if (isHomeOnMainPage) return;
+        announce(stop.name);
         openModal(stop.id);
-    }, [isHomeOnMainPage, openModal, stop.id]);
+    }, [isHomeOnMainPage, openModal, stop.id, announce]);
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             if (isHomeOnMainPage) return;
+            announce(stop.name);
             openModal(stop.id);
         }
-    }, [isHomeOnMainPage, openModal, stop.id]);
+    }, [isHomeOnMainPage, openModal, stop.id, announce]);
 
     // Home label is only visible when modal is open (so you can navigate back)
     // Other stops show labels when a line is selected or they're active
