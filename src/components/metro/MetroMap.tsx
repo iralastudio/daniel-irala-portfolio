@@ -266,7 +266,7 @@ export function MetroMap() {
                 viewBox={viewBox}
                 className="w-full h-full block"
                 preserveAspectRatio="xMidYMid meet"
-                aria-hidden={settings.simplifyMap ? "true" : "false"}
+                aria-hidden="false"
             >
                 {/* SVG Definitions for Neon Glow Effects - MEMOIZED */}
                 <SVGFilters isMobile={isMobile} />
@@ -362,7 +362,7 @@ export function MetroMap() {
                     {linePaths.map(({ line, path }) => (
                         <g key={line.id}>
                             <MetroLine line={line} pathDefinition={path} isMobile={isMobile} />
-                            {(!selectedLine || selectedLine === line.id) && !settings.simplifyMap && (
+                            {(!selectedLine || selectedLine === line.id) && (
                                 <ElectricPulse
                                     pathDefinition={path}
                                     color={line.color}
@@ -387,32 +387,6 @@ export function MetroMap() {
                     ))}
                 </g>
             </svg>
-
-            {/* Simplified List View (Accessible Fallback) */}
-            {settings.simplifyMap && (
-                <div className="absolute inset-0 bg-[var(--background)] p-8 overflow-y-auto z-10">
-                    <h2 className="text-2xl font-bold mb-4 text-white">Metro Stations List</h2>
-                    <div className="grid gap-4">
-                        {metroLines.map(line => (
-                            <div key={line.id} className="border border-white/10 p-4 rounded bg-white/5">
-                                <h3 className="text-xl font-bold mb-2" style={{ color: line.color }}>{line.name}</h3>
-                                <ul className="list-disc list-inside text-gray-300">
-                                    {line.stops.map(stopId => (
-                                        <li key={stopId} className="py-1">
-                                            <button
-                                                className="hover:underline hover:text-white text-left text-base"
-                                                onClick={() => document.querySelector<HTMLElement>(`[aria-label="View ${metroStops[stopId].name}"]`)?.click()}
-                                            >
-                                                {metroStops[stopId].name}
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
