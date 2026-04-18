@@ -4,9 +4,11 @@ import Image from 'next/image';
 
 export function AboutMe() {
     return (
-        <div className="space-y-3 md:space-y-3">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2">About Me</h2>
-            <div className="h-1 w-16 md:w-20 bg-[var(--line-profile)] rounded-full mb-3 md:mb-4" />
+        <div className="space-y-5 md:space-y-6">
+            <div>
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">About Me</h2>
+                <div className="h-1 w-16 md:w-20 bg-[var(--line-profile)] rounded-full" />
+            </div>
 
             {/* Profile Image */}
             <div className="flex justify-center mb-3 md:mb-4">
@@ -42,7 +44,7 @@ export function AboutMe() {
                 Currently Senior Design Researcher at Nestlé, fostering end-to-end journey design for IT experiences.
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mt-3 md:mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 <div className="bg-white/5 p-3 md:p-4 rounded-lg border border-[var(--line-profile)]/30 hover:border-[var(--line-profile)]/60 transition-all duration-300"
                      style={{ boxShadow: '0 0 20px rgba(255, 120, 197, 0.1)' }}>
                     <h3 className="text-lg md:text-xl font-bold text-[var(--line-profile)] mb-2">My approach</h3>

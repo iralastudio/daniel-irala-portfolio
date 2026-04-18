@@ -42,9 +42,11 @@ const methodologies = [
 
 export function HowIWork() {
     return (
-        <div className="space-y-4 md:space-y-5">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">How I Work</h2>
-            <div className="h-1 w-16 md:w-20 bg-[var(--line-profile)] rounded-full mb-4 md:mb-6" />
+        <div className="space-y-5 md:space-y-6">
+            <div>
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">How I Work</h2>
+                <div className="h-1 w-16 md:w-20 bg-[var(--line-profile)] rounded-full" />
+            </div>
 
             <div className="space-y-3 md:space-y-4">
                 {methodologies.map((method, index) => {

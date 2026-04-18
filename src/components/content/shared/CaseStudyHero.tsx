@@ -12,12 +12,12 @@ export function CaseStudyHero({ category, title, lineColor = 'projects' }: CaseS
     return (
         <div>
             <div
-                className="text-xs md:text-sm font-bold uppercase tracking-widest mb-2 md:mb-3"
+                className="text-xs md:text-sm font-bold uppercase tracking-widest mb-2"
                 style={{ color: colorVar }}
             >
                 {category}
             </div>
-            <h2 className="text-2xl md:text-4xl font-bold text-white mb-4 md:mb-6 leading-tight">
+            <h2 className="text-2xl md:text-4xl font-bold text-white mb-3 leading-tight">
                 {title}
             </h2>
             <div

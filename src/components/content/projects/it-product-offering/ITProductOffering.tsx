@@ -18,7 +18,7 @@ const WorkshopCarousel = dynamic(() => import('./WorkshopCarousel').then(m => m.
 const metrics = [
     { value: 40, label: 'In-Depth Interviews', suffix: '+' },
     { value: 70, label: 'Survey Responses', suffix: '+' },
-    { value: 4, label: 'Enterprise Personas', suffix: '' },
+    { value: 4, label: 'Core Personas', suffix: '' },
     { value: 12, label: 'Pain Points Diagnosed', suffix: '' },
 ];
 
@@ -26,8 +26,8 @@ export function ITProductOffering() {
     return (
         <CaseStudyLayout>
             <CaseStudyHero
-                category="Service Design & Research · Enterprise IT Governance · 2024–2025"
-                title="Redesigning How an Enterprise Discovers and Adopts IT Solutions"
+                category="Service Design & Research · IT Governance · 2024–2025"
+                title="Redesigning How an Organization Discovers and Adopts IT Solutions"
             />
 
             <CaseStudyMetrics metrics={metrics} />

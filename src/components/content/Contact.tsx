@@ -4,9 +4,11 @@ import { Mail, Calendar, Linkedin } from 'lucide-react';
 
 export function Contact() {
     return (
-        <div className="space-y-4 md:space-y-5">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">Contact</h2>
-            <div className="h-1 w-16 md:w-20 bg-[var(--line-profile)] rounded-full mb-4 md:mb-6" />
+        <div className="space-y-5 md:space-y-6">
+            <div>
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">Contact</h2>
+                <div className="h-1 w-16 md:w-20 bg-[var(--line-profile)] rounded-full" />
+            </div>
 
             <p className="text-sm md:text-base text-gray-300 mb-2 md:mb-3">
                 Have a system that needs untangling? A challenge worth mapping? I&apos;m always up for a good conversation.

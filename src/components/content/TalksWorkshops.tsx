@@ -8,16 +8,16 @@ type Category = 'case-studies' | 'workshops';
 const content = {
     'case-studies': [
         {
-            title: 'Systems Thinking in Enterprise: Real Constraints, No Fluff',
+            title: 'Systems Thinking in Practice: Real Constraints, No Fluff',
             organization: 'Si Design Hub',
             organizationUrl: 'https://www.linkedin.com/company/si-design-network/posts/?feedView=all',
             date: 'March 2026',
             type: 'Case Study Presentation',
             videoUrl: 'https://www.youtube.com/watch?v=fxMpMIVBsck',
-            description: 'Walking through an end-to-end IT Product Offering project to show how design survives—and thrives—inside a global enterprise. Focused on practice over theory: applying Systems Thinking inside a large organisation, navigating messy constraints, political realities, and adapting frameworks to context.',
+            description: 'Walking through an end-to-end IT Product Offering project to show how design survives—and thrives—inside a global organisation. Focused on practice over theory: applying Systems Thinking inside a large organisation, navigating messy constraints, political realities, and adapting frameworks to context.',
             topics: [
                 'Systems Thinking in Practice',
-                'Enterprise Design Constraints',
+                'Design Constraints',
                 'Service Design at Scale',
                 'Behavioural Design',
             ],
@@ -64,17 +64,17 @@ export function TalksWorkshops() {
     const activeContent = content[activeCategory];
 
     return (
-        <div className="space-y-6 md:space-y-8">
+        <div className="space-y-5 md:space-y-6">
             {/* ─── Hero Header ─── */}
             <div>
-                <div className="text-[var(--line-projects)] text-xs md:text-sm font-bold uppercase tracking-widest mb-2 md:mb-3">
+                <div className="text-[var(--line-projects)] text-xs md:text-sm font-bold uppercase tracking-widest mb-2">
                     Speaking · Teaching · Community
                 </div>
-                <h2 className="text-2xl md:text-4xl font-bold text-white mb-4 md:mb-6 leading-tight">
+                <h2 className="text-2xl md:text-4xl font-bold text-white mb-3 leading-tight">
                     Talks & Workshops
                 </h2>
                 <div className="h-1 w-16 md:w-20 bg-[var(--line-projects)] rounded-full" />
-                <p className="text-sm md:text-base text-gray-400 leading-relaxed mt-4 md:mt-6 max-w-3xl">
+                <p className="text-sm md:text-base text-gray-400 leading-relaxed mt-4 md:mt-5 max-w-3xl">
                     I share what I learn — the real, messy, constraint-filled version of applying design thinking and systems approaches inside large organisations. Below are some of my recent talks and workshop sessions.
                 </p>
             </div>

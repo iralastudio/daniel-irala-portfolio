@@ -6,7 +6,7 @@ import { useModal } from '@/hooks/useModal';
 const projectsData: Record<string, { title: string; client: string; desc: string; role: string }> = {
     'meeting-experience': {
         title: 'E2E Meeting Experience',
-        client: 'Global Enterprise',
+        client: 'Global Organization',
         role: 'Service Design Lead',
         desc: 'Redesigned the entire meeting lifecycle for 50,000+ employees, integrating physical room hardware with digital scheduling tools.'
     },

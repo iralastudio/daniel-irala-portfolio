@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Daniel Irala | Service Design Lead & Systems Innovator",
+  title: "Daniel Irala | Senior UX Researcher & Service Designer",
   description: "Making meaning out of chaos because clarity is a form of kindness.",
 };
 

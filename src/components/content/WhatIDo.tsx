@@ -35,10 +35,12 @@ const interests = [
 
 export function WhatIDo() {
     return (
-        <div className="space-y-4 md:space-y-5">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">What I Do</h2>
-            <h3 className="text-lg md:text-xl text-gray-400 mb-2 md:mb-4">(When I&apos;m Not Mapping Systems)</h3>
-            <div className="h-1 w-16 md:w-20 bg-[var(--line-profile)] rounded-full mb-4 md:mb-6" />
+        <div className="space-y-5 md:space-y-6">
+            <div>
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-1">What I Do</h2>
+                <h3 className="text-lg md:text-xl text-gray-400 mb-3">(When I&apos;m Not Mapping Systems)</h3>
+                <div className="h-1 w-16 md:w-20 bg-[var(--line-profile)] rounded-full" />
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                 {interests.map((interest, index) => {

@@ -42,7 +42,7 @@ export function MeetingExperience() {
     return (
         <CaseStudyLayout>
             <CaseStudyHero
-                category="Service Design & Research | Enterprise Digital Experience | 2024–2025"
+                category="Service Design & Research | Digital Experience | 2024–2025"
                 title="Redesigning the End-to-End Meeting Experience Across Nestlé"
             />
 
