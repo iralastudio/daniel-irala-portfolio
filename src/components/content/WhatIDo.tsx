@@ -48,18 +48,7 @@ export function WhatIDo() {
                     return (
                         <div
                             key={index}
-                            className="group flex flex-col items-center text-center p-4 md:p-5 rounded-lg bg-white/5 border border-white/10 hover:border-white/30 transition-all duration-300"
-                            style={{
-                                boxShadow: `0 0 0px ${interest.glowColor}`,
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.boxShadow = `0 0 30px ${interest.glowColor}`;
-                                e.currentTarget.style.transform = 'translateY(-4px)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.boxShadow = `0 0 0px ${interest.glowColor}`;
-                                e.currentTarget.style.transform = 'translateY(0)';
-                            }}
+                            className="group flex flex-col items-center text-center p-4 md:p-5 rounded-xl glass-frontstage border border-white/10 hover:border-white/25 hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(255,120,197,0.15)] transition-all duration-300"
                         >
                             {/* Icon Circle */}
                             <div

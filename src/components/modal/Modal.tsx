@@ -12,28 +12,41 @@ import { MetroLineNav } from './MetroLineNav';
 import { cn } from '@/lib/cn';
 
 // Content components
-import { AboutMe } from '@/components/content/AboutMe';
-import { HowIWork } from '@/components/content/HowIWork';
-import { WhatIDo } from '@/components/content/WhatIDo';
-import { Contact } from '@/components/content/Contact';
+import { ProfileJourney } from '@/components/content/ProfileJourney';
+import { ThinkingJourney } from '@/components/content/ThinkingJourney';
+import { Podcast } from '@/components/content/Podcast';
+import { Articles } from '@/components/content/Articles';
+import { Reading } from '@/components/content/Reading';
 import { ProjectDetail } from '@/components/content/ProjectDetail';
 import { Experiments } from '@/components/content/Experiments';
 import { MeetingExperience } from '@/components/content/projects/e2e-meeting-experience/MeetingExperience';
 import { ITProductOffering } from '@/components/content/projects/it-product-offering/ITProductOffering';
 import { TalksWorkshops } from '@/components/content/TalksWorkshops';
 
-// Map stop IDs to components
+// Stops that render as continuous scroll journeys, keyed by line
+const JOURNEY_STOPS: Partial<Record<string, StopId[]>> = {
+    profile:  ['about-me', 'how-i-work', 'podcast', 'what-i-do', 'contact'],
+    thinking: ['articles', 'workshops', 'reading', 'experiments'],
+};
+
+// Flat lookup: which stop belongs to which journey
+const STOP_TO_JOURNEY: Partial<Record<StopId, 'profile' | 'thinking'>> = {
+    'about-me': 'profile', 'how-i-work': 'profile', 'podcast': 'profile',
+    'what-i-do': 'profile', 'contact': 'profile',
+    'articles': 'thinking', 'workshops': 'thinking',
+    'reading': 'thinking', 'experiments': 'thinking',
+};
+
+// Map stop IDs to components for standalone (non-journey) access
 const contentMap: Partial<Record<StopId, React.ComponentType>> = {
-    'about-me': AboutMe,
-    'how-i-work': HowIWork,
-    'what-i-do': WhatIDo,
-    'contact': Contact,
+    'podcast': Podcast,
+    'articles': Articles,
+    'reading': Reading,
     'meeting-experience': MeetingExperience,
     'product-offering': ITProductOffering,
     'it-key-roles': ProjectDetail,
     'experiments': Experiments,
     'workshops': TalksWorkshops,
-    // Placeholders for others
     'home': () => <div className="text-white">Home Content Placeholder</div>,
 };
 
@@ -49,6 +62,7 @@ export function Modal() {
     const { selectedLine } = useMetroMap();
     const { settings } = useAccessibility();
     const modalRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     // Determine the active line for scrollbar theming
     const activeLineId = useMemo((): LineId | null => {
@@ -89,15 +103,27 @@ export function Modal() {
         }
     }, [isOpen, closeModal]);
 
+    // Only activate scroll journey when the active line matches that journey's line.
+    // Transfer stops (e.g. podcast on Profile+Projects) render standalone when
+    // opened from a line that has no journey (e.g. Projects).
+    const stopJourney = activeStop ? STOP_TO_JOURNEY[activeStop] : undefined;
+    const activeJourney = (() => {
+        if (!stopJourney) return undefined;
+        if (stopJourney === 'profile' && activeLineId === 'profile') return 'profile';
+        if (stopJourney === 'thinking' && activeLineId === 'thinking') return 'thinking';
+        return undefined;
+    })();
     const ContentComponent = activeStop ? contentMap[activeStop] : null;
 
     // Stops that should use full-width layout without sidebar
     const fullWidthStops: StopId[] = [];
     const isFullWidth = activeStop ? fullWidthStops.includes(activeStop) : false;
 
-    // Stops that don't need scrolling (content fits without overflow)
-    const noScrollStops: StopId[] = ['workshops'];
-    const shouldDisableScroll = activeStop ? noScrollStops.includes(activeStop) : false;
+    const shouldDisableScroll = false;
+
+    // Wide stops need room for 2-column case study layouts
+    const wideStops: StopId[] = ['meeting-experience', 'product-offering', 'experiments', 'workshops'];
+    const isWide = activeStop ? wideStops.includes(activeStop) : false;
 
     return (
         <AnimatePresence>
@@ -152,12 +178,23 @@ export function Modal() {
 
                             {/* Content Container - Floating glass card */}
                             <div className="p-8 md:p-8 min-h-screen md:min-h-0 md:h-full md:flex md:items-center md:justify-center">
-                                <div className={cn(
-                                    "max-w-7xl glass-backstage rounded-2xl p-8 md:p-10",
-                                    shouldDisableScroll ? "" : "md:max-h-[90vh] md:overflow-y-auto",
-                                    !shouldDisableScroll && scrollbarClass
-                                )}>
-                                    {ContentComponent ? <ContentComponent /> : <ContentFallback activeStop={activeStop} />}
+                                <div
+                                    ref={scrollContainerRef}
+                                    className={cn(
+                                        "glass-backstage rounded-2xl p-8 md:p-10",
+                                        isWide ? "max-w-5xl" : "max-w-4xl",
+                                        shouldDisableScroll ? "" : "md:max-h-[90vh] md:overflow-y-auto",
+                                        !shouldDisableScroll && scrollbarClass
+                                    )}
+                                >
+                                    {activeJourney === 'profile'
+                                        ? <ProfileJourney initialSection={activeStop!} scrollContainerRef={scrollContainerRef} />
+                                        : activeJourney === 'thinking'
+                                            ? <ThinkingJourney initialSection={activeStop!} scrollContainerRef={scrollContainerRef} />
+                                            : ContentComponent
+                                                ? <ContentComponent />
+                                                : <ContentFallback activeStop={activeStop} />
+                                    }
                                 </div>
                             </div>
                         </div>

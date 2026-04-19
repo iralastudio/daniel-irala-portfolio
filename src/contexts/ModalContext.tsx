@@ -6,8 +6,10 @@ import { StopId } from '@/types/metro';
 interface ModalContextType {
     isOpen: boolean;
     activeStop: StopId | null;
+    activeScrollSection: StopId | null;
     openModal: (stopId: StopId) => void;
     closeModal: () => void;
+    setActiveScrollSection: (id: StopId | null) => void;
 }
 
 const ModalContext = createContext<ModalContextType | null>(null);
@@ -15,28 +17,32 @@ const ModalContext = createContext<ModalContextType | null>(null);
 export function ModalProvider({ children }: { children: ReactNode }) {
     const [isOpen, setIsOpen] = useState(false);
     const [activeStop, setActiveStop] = useState<StopId | null>(null);
+    const [activeScrollSection, setActiveScrollSection] = useState<StopId | null>(null);
 
     const openModal = useCallback((stopId: StopId) => {
         setActiveStop(stopId);
         setIsOpen(true);
-        // Optional: Update URL hash here if desired
-        // window.history.pushState(null, '', `#${stopId}`);
     }, []);
 
     const closeModal = useCallback(() => {
         setIsOpen(false);
         setActiveStop(null);
-        // Optional: Clear hash
-        // window.history.pushState(null, '', ' ');
+        setActiveScrollSection(null);
+    }, []);
+
+    const handleSetActiveScrollSection = useCallback((id: StopId | null) => {
+        setActiveScrollSection(id);
     }, []);
 
     // CRITICAL: Memoize the context value to prevent unnecessary re-renders
     const value = useMemo(() => ({
         isOpen,
         activeStop,
+        activeScrollSection,
         openModal,
-        closeModal
-    }), [isOpen, activeStop, openModal, closeModal]);
+        closeModal,
+        setActiveScrollSection: handleSetActiveScrollSection,
+    }), [isOpen, activeStop, activeScrollSection, openModal, closeModal, handleSetActiveScrollSection]);
 
     return (
         <ModalContext.Provider value={value}>

@@ -54,16 +54,7 @@ export function HowIWork() {
                     return (
                         <div
                             key={index}
-                            className="group flex gap-3 md:gap-4 p-3 md:p-4 rounded-lg bg-white/5 border border-white/10 hover:border-white/30 transition-all duration-300"
-                            style={{
-                                boxShadow: `0 0 0px ${method.glowColor}`,
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.boxShadow = `0 0 30px ${method.glowColor}`;
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.boxShadow = `0 0 0px ${method.glowColor}`;
-                            }}
+                            className="group flex gap-3 md:gap-4 p-4 md:p-5 rounded-xl glass-frontstage border border-white/10 hover:border-white/25 hover:shadow-[0_0_30px_rgba(255,120,197,0.15)] transition-all duration-300"
                         >
                             {/* Icon Circle */}
                             <div

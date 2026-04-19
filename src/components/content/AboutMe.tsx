@@ -45,30 +45,26 @@ export function AboutMe() {
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                <div className="bg-white/5 p-3 md:p-4 rounded-lg border border-[var(--line-profile)]/30 hover:border-[var(--line-profile)]/60 transition-all duration-300"
-                     style={{ boxShadow: '0 0 20px rgba(255, 120, 197, 0.1)' }}>
-                    <h3 className="text-lg md:text-xl font-bold text-[var(--line-profile)] mb-2">My approach</h3>
+                <div className="glass-frontstage p-4 md:p-5 rounded-xl border border-[var(--line-profile)]/20 hover:border-[var(--line-profile)]/50 hover:shadow-[0_0_25px_rgba(255,120,197,0.12)] transition-all duration-300">
+                    <h3 className="text-base md:text-lg font-bold text-[var(--line-profile)] mb-2">My approach</h3>
                     <p className="text-xs md:text-sm text-gray-400 leading-relaxed">
                         I map complexity, then redesign it with clarity and intention. Service systems, IT experiences, governance frameworks — wherever humans get lost in organizational noise.
                     </p>
                 </div>
-                <div className="bg-white/5 p-3 md:p-4 rounded-lg border border-[var(--line-profile)]/30 hover:border-[var(--line-profile)]/60 transition-all duration-300"
-                     style={{ boxShadow: '0 0 20px rgba(255, 120, 197, 0.1)' }}>
-                    <h3 className="text-lg md:text-xl font-bold text-[var(--line-profile)] mb-2">What drives me</h3>
+                <div className="glass-frontstage p-4 md:p-5 rounded-xl border border-[var(--line-profile)]/20 hover:border-[var(--line-profile)]/50 hover:shadow-[0_0_25px_rgba(255,120,197,0.12)] transition-all duration-300">
+                    <h3 className="text-base md:text-lg font-bold text-[var(--line-profile)] mb-2">What drives me</h3>
                     <p className="text-xs md:text-sm text-gray-400 leading-relaxed">
                         Clarity is a form of care. Care at scale requires systems that see people — not as users or tickets, but as humans navigating complexity.
                     </p>
                 </div>
-                <div className="bg-white/5 p-3 md:p-4 rounded-lg border border-[var(--line-profile)]/30 hover:border-[var(--line-profile)]/60 transition-all duration-300"
-                     style={{ boxShadow: '0 0 20px rgba(255, 120, 197, 0.1)' }}>
-                    <h3 className="text-lg md:text-xl font-bold text-[var(--line-profile)] mb-2">How I see the future</h3>
+                <div className="glass-frontstage p-4 md:p-5 rounded-xl border border-[var(--line-profile)]/20 hover:border-[var(--line-profile)]/50 hover:shadow-[0_0_25px_rgba(255,120,197,0.12)] transition-all duration-300">
+                    <h3 className="text-base md:text-lg font-bold text-[var(--line-profile)] mb-2">How I see the future</h3>
                     <p className="text-xs md:text-sm text-gray-400 leading-relaxed">
                         The future isn&apos;t a destination — it&apos;s a set of possibilities we shape today. Every system we redesign is a choice about the kind of tomorrow we want.
                     </p>
                 </div>
-                <div className="bg-white/5 p-3 md:p-4 rounded-lg border border-[var(--line-profile)]/30 hover:border-[var(--line-profile)]/60 transition-all duration-300"
-                     style={{ boxShadow: '0 0 20px rgba(255, 120, 197, 0.1)' }}>
-                    <h3 className="text-lg md:text-xl font-bold text-[var(--line-profile)] mb-2">My foundation</h3>
+                <div className="glass-frontstage p-4 md:p-5 rounded-xl border border-[var(--line-profile)]/20 hover:border-[var(--line-profile)]/50 hover:shadow-[0_0_25px_rgba(255,120,197,0.12)] transition-all duration-300">
+                    <h3 className="text-base md:text-lg font-bold text-[var(--line-profile)] mb-2">My foundation</h3>
                     <p className="text-xs md:text-sm text-gray-400 leading-relaxed">
                         Behavioral science. Systems thinking. Futures thinking. And a stubborn belief that enterprise doesn&apos;t have to mean impersonal.
                     </p>

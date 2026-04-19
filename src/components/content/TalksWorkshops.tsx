@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ExternalLink, Calendar, Users } from 'lucide-react';
+import { useLineTheme } from '@/hooks/useLineTheme';
 
 type Category = 'case-studies' | 'workshops';
 
@@ -60,6 +61,7 @@ const reflections: Record<Category, { title: string; text: string }> = {
 
 export function TalksWorkshops() {
     const [activeCategory, setActiveCategory] = useState<Category>('case-studies');
+    const { color } = useLineTheme();
 
     const activeContent = content[activeCategory];
 
@@ -67,13 +69,13 @@ export function TalksWorkshops() {
         <div className="space-y-5 md:space-y-6">
             {/* ─── Hero Header ─── */}
             <div>
-                <div className="text-[var(--line-projects)] text-xs md:text-sm font-bold uppercase tracking-widest mb-2">
+                <div className="text-xs md:text-sm font-bold uppercase tracking-widest mb-2" style={{ color }}>
                     Speaking · Teaching · Community
                 </div>
                 <h2 className="text-2xl md:text-4xl font-bold text-white mb-3 leading-tight">
                     Talks & Workshops
                 </h2>
-                <div className="h-1 w-16 md:w-20 bg-[var(--line-projects)] rounded-full" />
+                <div className="h-1 w-16 md:w-20 rounded-full" style={{ backgroundColor: color }} />
                 <p className="text-sm md:text-base text-gray-400 leading-relaxed mt-4 md:mt-5 max-w-3xl">
                     I share what I learn — the real, messy, constraint-filled version of applying design thinking and systems approaches inside large organisations. Below are some of my recent talks and workshop sessions.
                 </p>
@@ -89,15 +91,12 @@ export function TalksWorkshops() {
                             aria-selected={activeCategory === category.id}
                             aria-controls={`panel-${category.id}`}
                             onClick={() => setActiveCategory(category.id)}
-                            className={`
-                                px-4 py-3 text-sm md:text-base font-medium whitespace-nowrap
-                                border-b-2 transition-all duration-200
-                                ${
-                                    activeCategory === category.id
-                                        ? 'border-[var(--line-projects)] text-white'
-                                        : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-white/20'
-                                }
-                            `}
+                            className="px-4 py-3 text-sm md:text-base font-medium whitespace-nowrap border-b-2 transition-all duration-200"
+                            style={
+                                activeCategory === category.id
+                                    ? { borderColor: color, color: 'white' }
+                                    : { borderColor: 'transparent', color: '#6b7280' }
+                            }
                         >
                             {category.label}
                         </button>
@@ -115,12 +114,18 @@ export function TalksWorkshops() {
                     {activeContent.map((item, index) => (
                         <article
                             key={index}
-                            className="bg-white/5 rounded-xl border border-[var(--line-projects)]/20 hover:border-[var(--line-projects)]/40 transition-all duration-300 overflow-hidden"
+                            className="bg-white/5 rounded-xl transition-all duration-300 overflow-hidden"
+                            style={{ border: `1px solid ${color}33` }}
+                            onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = `${color}66`)}
+                            onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = `${color}33`)}
                         >
                             {/* Header */}
                             <div className="p-5 md:p-6 border-b border-white/5">
                                 <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
-                                    <span className="px-2 py-0.5 text-[10px] md:text-xs font-medium uppercase tracking-wider bg-[var(--line-projects)]/10 text-[var(--line-projects)] rounded">
+                                    <span
+                                        className="px-2 py-0.5 text-[10px] md:text-xs font-medium uppercase tracking-wider rounded"
+                                        style={{ backgroundColor: `${color}1a`, color }}
+                                    >
                                         {item.type}
                                     </span>
                                     <div className="flex items-center gap-1.5 text-xs text-gray-500">
@@ -136,7 +141,8 @@ export function TalksWorkshops() {
                                         href={item.organizationUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1.5 text-sm text-[var(--line-projects)] hover:text-[var(--line-profile)] transition-colors duration-200"
+                                        className="inline-flex items-center gap-1.5 text-sm transition-colors duration-200"
+                                        style={{ color }}
                                     >
                                         <Users size={14} />
                                         <span>{item.organization}</span>
@@ -174,7 +180,18 @@ export function TalksWorkshops() {
                                         href={item.videoUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[var(--line-projects)]/20 hover:bg-[var(--line-projects)]/30 border border-[var(--line-projects)]/30 hover:border-[var(--line-projects)]/50 rounded-lg transition-all duration-200"
+                                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg transition-all duration-200"
+                                        style={{ backgroundColor: `${color}33`, border: `1px solid ${color}4d` }}
+                                        onMouseEnter={e => {
+                                            const el = e.currentTarget as HTMLElement;
+                                            el.style.backgroundColor = `${color}4d`;
+                                            el.style.borderColor = `${color}80`;
+                                        }}
+                                        onMouseLeave={e => {
+                                            const el = e.currentTarget as HTMLElement;
+                                            el.style.backgroundColor = `${color}33`;
+                                            el.style.borderColor = `${color}4d`;
+                                        }}
                                     >
                                         <ExternalLink size={16} />
                                         Watch Recording

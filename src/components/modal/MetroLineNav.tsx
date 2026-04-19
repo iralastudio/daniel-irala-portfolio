@@ -11,6 +11,12 @@ import { getLineColor, getTransferLineColors } from '@/lib/colors';
 import { LineId, StopId, MetroStop } from '@/types/metro';
 import { memo, useCallback, useMemo } from 'react';
 
+// Journey stops per line — used for sidebar fill animation
+const JOURNEY_STOPS: Partial<Record<string, StopId[]>> = {
+    profile:  ['about-me', 'how-i-work', 'podcast', 'what-i-do', 'contact'],
+    thinking: ['articles', 'workshops', 'reading', 'experiments'],
+};
+
 interface MetroLineNavProps {
     currentStop: StopId;
 }
@@ -106,6 +112,8 @@ TransferIndicator.displayName = 'TransferIndicator';
 interface MetroStopItemProps {
     stop: MetroStop;
     isCurrentStop: boolean;
+    isVisited: boolean;
+    isConnectorFilled: boolean;
     hasNextStop: boolean;
     lineColor: string;
     currentLineId: LineId;
@@ -116,6 +124,8 @@ interface MetroStopItemProps {
 const MetroStopItem = memo(({
     stop,
     isCurrentStop,
+    isVisited,
+    isConnectorFilled,
     hasNextStop,
     lineColor,
     currentLineId,
@@ -193,20 +203,25 @@ const MetroStopItem = memo(({
                                 "w-3 h-3 rounded-full border-2 relative z-10",
                                 isCurrentStop
                                     ? "bg-white"
-                                    : "bg-black border-gray-500"
+                                    : isVisited
+                                        ? "bg-black"
+                                        : "bg-black border-gray-600"
                             )}
                             style={{
-                                borderColor: isCurrentStop ? lineColor : undefined,
+                                borderColor: isCurrentStop || isVisited ? lineColor : undefined,
                             }}
                             initial={false}
                             animate={{
                                 scale: isCurrentStop ? 1.25 : 1,
+                                opacity: isVisited || isCurrentStop ? 1 : 0.4,
                             }}
                             whileHover={{
                                 scale: isCurrentStop ? 1.35 : 1.15,
                                 boxShadow: isCurrentStop
                                     ? `0 0 12px ${lineColor}`
-                                    : '0 0 6px rgba(255,255,255,0.3)',
+                                    : isVisited
+                                        ? `0 0 8px ${lineColor}80`
+                                        : '0 0 6px rgba(255,255,255,0.3)',
                             }}
                             transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                         />
@@ -246,14 +261,16 @@ const MetroStopItem = memo(({
                 )}
             </motion.div>
 
-            {/* Connecting Line - STABLE (no transforms applied) */}
+            {/* Connecting Line — fills with color as user scrolls past this stop */}
             {hasNextStop && (
-                <div
-                    className="ml-[18px] w-0.5 h-4 flex-shrink-0"
-                    style={{
-                        backgroundColor: lineColor,
-                        opacity: 0.3,
+                <motion.div
+                    className="ml-[18px] w-0.5 flex-shrink-0"
+                    style={{ backgroundColor: lineColor, height: 24 }}
+                    animate={{
+                        opacity: isConnectorFilled ? 0.85 : 0.2,
+                        boxShadow: isConnectorFilled ? `0 0 6px ${lineColor}70` : 'none',
                     }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
                 />
             )}
         </div>
@@ -266,8 +283,11 @@ MetroStopItem.displayName = 'MetroStopItem';
 // MAIN COMPONENT
 // ============================================
 export function MetroLineNav({ currentStop }: MetroLineNavProps) {
-    const { openModal, closeModal } = useModal();
+    const { openModal, closeModal, activeScrollSection } = useModal();
     const { selectedLine, setSelectedLine } = useMetroMap();
+
+    // In journey mode, the active stop is driven by scroll position
+    const activeStopId = activeScrollSection ?? currentStop;
 
     // Get the current stop's data
     const stop = metroStops[currentStop];
@@ -275,6 +295,12 @@ export function MetroLineNav({ currentStop }: MetroLineNavProps) {
 
     // Determine which line we're on (prefer selectedLine, fallback to first line)
     const currentLineId: LineId = selectedLine || stop.lines[0];
+
+    // Journey stops for the current line (empty if line has no journey)
+    const journeyStops = JOURNEY_STOPS[currentLineId] ?? [];
+
+    // Index of the active stop within the journey stop order
+    const activeJourneyIndex = journeyStops.indexOf(activeStopId);
 
     // Get the line data
     const currentLine = metroLines.find(line => line.id === currentLineId);
@@ -295,8 +321,13 @@ export function MetroLineNav({ currentStop }: MetroLineNavProps) {
 
     // Memoized handlers to prevent re-creating functions
     const handleStopClick = useCallback((stopId: StopId) => {
-        openModal(stopId);
-    }, [openModal]);
+        // If we're in a scroll journey, scroll to the section instead of reopening the modal
+        if (activeScrollSection !== null && journeyStops.includes(stopId)) {
+            document.getElementById(stopId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            openModal(stopId);
+        }
+    }, [openModal, activeScrollSection, journeyStops]);
 
     const handleLineTransfer = useCallback((lineId: LineId, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -331,18 +362,29 @@ export function MetroLineNav({ currentStop }: MetroLineNavProps) {
 
                 {/* Stops List */}
                 <nav className="flex-1 flex flex-col gap-1" role="navigation" aria-label="Metro line stops">
-                    {lineStops.map((stop, index) => (
+                    {lineStops.map((stop, index) => {
+                        const stopJourneyIndex = journeyStops.indexOf(stop.id);
+                        const isJourneyStop = stopJourneyIndex !== -1;
+                        // Visited: this stop comes before the active scroll section in journey order
+                        const isVisited = isJourneyStop && activeJourneyIndex > 0 && stopJourneyIndex < activeJourneyIndex;
+                        // Connector fills when this stop is at or before the active section
+                        const isConnectorFilled = isJourneyStop && activeJourneyIndex >= 0 && stopJourneyIndex <= activeJourneyIndex - 1;
+
+                        return (
                         <MetroStopItem
                             key={stop.id}
                             stop={stop}
-                            isCurrentStop={stop.id === currentStop}
+                            isCurrentStop={stop.id === activeStopId}
+                            isVisited={isVisited}
+                            isConnectorFilled={isConnectorFilled}
                             hasNextStop={index < lineStops.length - 1}
                             lineColor={lineColor}
                             currentLineId={currentLineId}
                             onStopClick={handleStopClick}
                             onLineTransfer={handleLineTransfer}
                         />
-                    ))}
+                        );
+                    })}
                 </nav>
 
                 {/* Legend - Line indicators */}
