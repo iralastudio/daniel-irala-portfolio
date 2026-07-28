@@ -1,19 +1,13 @@
 'use client';
 
 import { AccessibilityProvider } from '@/contexts/AccessibilityContext';
-import { MetroProvider } from '@/contexts/MetroContext';
-import { ModalProvider } from '@/contexts/ModalContext';
 import { LazyMotion, domAnimation } from 'framer-motion';
 
 export function Providers({ children }: { children: React.ReactNode }) {
     return (
-        <LazyMotion features={domAnimation}>
+        <LazyMotion features={domAnimation} strict>
             <AccessibilityProvider>
-                <MetroProvider>
-                    <ModalProvider>
-                        {children}
-                    </ModalProvider>
-                </MetroProvider>
+                {children}
             </AccessibilityProvider>
         </LazyMotion>
     );

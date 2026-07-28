@@ -1,25 +1,14 @@
-'use client';
+import { ScaleExperience } from '@/components/scale/ScaleExperience';
+import { CrawlableContent } from '@/components/scale/CrawlableContent';
 
-import { SplitScreen } from "@/components/layout/SplitScreen";
-import dynamic from 'next/dynamic';
-
-const MetroMap = dynamic(() => import('@/components/metro/MetroMap').then(mod => mod.MetroMap), {
-  ssr: false, // Map relies on window hooks
-  loading: () => (
-    <div className="w-full h-full flex items-center justify-center bg-background/50 backdrop-blur-sm animate-pulse">
-      <div className="w-16 h-16 rounded-full border-4 border-t-[var(--line-projects)] border-r-[var(--line-profile)] border-b-[var(--line-thinking)] border-l-white/10 animate-spin" />
-    </div>
-  )
-});
-
+// The visible experience is the interactive system map + click-to-open windows.
+// CrawlableContent is a hidden, server-rendered mirror so the substance stays
+// readable to search engines and screen readers without the canvas.
 export default function Home() {
-  return (
-    <>
-      <div className="animate-in fade-in duration-700">
-        <SplitScreen>
-          <MetroMap />
-        </SplitScreen>
-      </div>
-    </>
-  );
+    return (
+        <main className="relative">
+            <CrawlableContent />
+            <ScaleExperience />
+        </main>
+    );
 }

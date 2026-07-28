@@ -1,8 +1,10 @@
 import { Montserrat, Open_Sans } from 'next/font/google';
 
+// Original site fonts — kept per Dani's request.
+// Montserrat = headings / display + UI labels; Open Sans = body.
 export const montserrat = Montserrat({
     subsets: ['latin'],
-    variable: '--font-heading',
+    variable: '--font-display',
     display: 'swap',
 });
 
@@ -11,5 +13,3 @@ export const openSans = Open_Sans({
     variable: '--font-body',
     display: 'swap',
 });
-
-// OpenDyslexic will be loaded via CSS @font-face or next/font/local if file is available
