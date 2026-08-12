@@ -42,7 +42,7 @@ export function SectionPanel({
             initial="hidden"
             animate="show"
             exit="exit"
-            className="pointer-events-auto w-full max-w-[34rem] px-6 md:px-12 lg:px-20 py-10"
+            className="pointer-events-auto m-auto w-full max-w-[34rem] px-6 md:px-12 lg:px-20 py-9"
         >
             <m.div variants={item} className="flex items-center gap-3 mb-5">
                 <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
@@ -53,8 +53,8 @@ export function SectionPanel({
 
             <Heading
                 variants={item}
-                className="font-display font-bold text-ink leading-[0.98] tracking-[-0.02em]"
-                style={{ fontSize: 'clamp(2.5rem, 5.2vw, 4.4rem)' }}
+                className="font-display font-bold text-ink leading-[0.98] tracking-[-0.02em] text-balance"
+                style={{ fontSize: 'var(--step-4)' }}
             >
                 {scene.headline.lead}
                 <span className="italic text-accent">{scene.headline.accent}</span>
@@ -63,8 +63,8 @@ export function SectionPanel({
             {scene.headline.sub && (
                 <m.p
                     variants={item}
-                    className="font-display italic text-ink-soft mt-3"
-                    style={{ fontSize: 'clamp(1.1rem, 1.6vw, 1.4rem)' }}
+                    className="font-display italic text-ink-soft mt-3 text-balance"
+                    style={{ fontSize: 'var(--step-1)' }}
                 >
                     {scene.headline.sub}
                 </m.p>
@@ -72,19 +72,26 @@ export function SectionPanel({
 
             <m.p
                 variants={item}
-                className="mt-6 text-ink-soft max-w-[46ch]"
-                style={{ fontSize: '1.0625rem', lineHeight: 1.65 }}
+                className="mt-6 text-ink-soft max-w-[46ch] text-pretty"
+                style={{ fontSize: 'var(--step-0)', lineHeight: 1.65 }}
             >
                 {scene.body}
             </m.p>
 
-            {(scene.cta || scene.links) && (
-                <m.div variants={item} className="mt-8 flex flex-wrap items-center gap-2.5">
-                    {scene.cta && (
-                        <ActionPill primary label={scene.cta.label} href={scene.cta.href} onSelect={onSelect} />
-                    )}
-                    {scene.links?.map((l) => (
-                        <ActionPill key={l.href + l.label} label={l.label} href={l.href} meta={l.meta} onSelect={onSelect} />
+            {scene.cta && (
+                <m.div variants={item} className="mt-8">
+                    <ActionPill primary label={scene.cta.label} href={scene.cta.href} onSelect={onSelect} />
+                </m.div>
+            )}
+
+            {/* Project entries read as an index, not a stack of boxes — long
+                titles get the full width instead of wrapping inside a button. */}
+            {scene.links && scene.links.length > 0 && (
+                <m.div variants={item} className="mt-7 border-t border-ink/12">
+                    {scene.links.map((l) => (
+                        <div key={l.href + l.label} className="border-b border-ink/12">
+                            <ActionPill row label={l.label} href={l.href} meta={l.meta} onSelect={onSelect} />
+                        </div>
                     ))}
                 </m.div>
             )}

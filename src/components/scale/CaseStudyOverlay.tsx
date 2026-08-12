@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { m, useReducedMotion, type Variants } from 'framer-motion';
-import type { CaseStudy, CaseFigure, IcebergModel } from '@/data/caseStudies';
+import type { CaseStudy, CaseFigure, IcebergModel, RoleTrackModel } from '@/data/caseStudies';
 import type { NodeContent } from '@/data/nodeContent';
 import { useDialogFocus } from '@/hooks/useDialogFocus';
 import { useAccessibility } from '@/hooks/useAccessibility';
@@ -142,7 +142,7 @@ function Iceberg({ model }: { model: IcebergModel }) {
                             <div className="label-mono mb-2.5">Out of scope for the workshop</div>
                             <div className="flex flex-wrap gap-2">
                                 {model.outOfScope.map((t) => (
-                                    <span key={t} className="rounded-full border border-ink/10 bg-background/60 px-3 py-1.5 text-ink-soft" style={{ fontSize: 'var(--step--1)' }}>
+                                    <span key={t} className="rounded-sm border border-ink/10 bg-background/60 px-2.5 py-1 text-ink-soft" style={{ fontSize: 'var(--step--1)' }}>
                                         {t}
                                     </span>
                                 ))}
@@ -150,6 +150,105 @@ function Iceberg({ model }: { model: IcebergModel }) {
                         </div>
                     )}
                 </div>
+            </div>
+        </div>
+    );
+}
+
+/**
+ * RoleTrack — for programmes running several workstreams on one shared
+ * maturity axis, each at a genuinely different stage. One row per role: a dot
+ * on a common track, real metrics where a round of testing has produced them,
+ * an explicit "not yet" chip where it hasn't. The gap is the honest part —
+ * never papered over with an invented number.
+ */
+function RoleTrack({ model }: { model: RoleTrackModel }) {
+    const lastIndex = model.stages.length - 1;
+    return (
+        <div className="rounded-2xl border border-ink/10 overflow-hidden bg-background/40">
+            <div className="px-5 sm:px-7 py-5 border-b border-ink/10">
+                <p className="font-display text-ink" style={{ fontSize: 'clamp(1.05rem, 1.7vw, 1.35rem)', lineHeight: 1.35 }}>
+                    <strong className="font-semibold">{model.prompt}</strong>
+                </p>
+            </div>
+
+            <div className="px-5 sm:px-7 py-6 space-y-6">
+                {model.rows.map((row) => {
+                    const pct = lastIndex === 0 ? 0 : (row.stageIndex / lastIndex) * 100;
+                    return (
+                        <div key={row.role}>
+                            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 mb-3">
+                                <div className="font-display font-semibold text-ink" style={{ fontSize: 'var(--step-0)' }}>
+                                    {row.role}
+                                </div>
+                                <div className="label-mono !text-accent !text-[10px] !tracking-[0.1em]">
+                                    {model.stages[row.stageIndex]}
+                                </div>
+                            </div>
+
+                            {/* Track: base line, travelled line, one dot per stage */}
+                            <div className="relative h-4">
+                                <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-ink/10" />
+                                <div
+                                    className="absolute left-0 top-1/2 -translate-y-1/2 h-px bg-accent/60"
+                                    style={{ width: `${pct}%` }}
+                                />
+                                {model.stages.map((stage, i) => {
+                                    const tickPct = lastIndex === 0 ? 0 : (i / lastIndex) * 100;
+                                    const isCurrent = i === row.stageIndex;
+                                    const isReached = i < row.stageIndex;
+                                    return (
+                                        <div
+                                            key={stage}
+                                            aria-hidden="true"
+                                            className={
+                                                isCurrent
+                                                    ? 'absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-accent ring-4 ring-accent/20'
+                                                    : isReached
+                                                        ? 'absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-accent/50'
+                                                        : 'absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-ink/15'
+                                            }
+                                            style={{ left: `${tickPct}%` }}
+                                        />
+                                    );
+                                })}
+                            </div>
+
+                            <p className="text-ink-soft mt-3" style={{ fontSize: 'var(--step--1)', lineHeight: 1.6 }}>
+                                {row.status}
+                            </p>
+
+                            {row.metrics ? (
+                                <div className="flex flex-wrap gap-2 mt-3">
+                                    {row.metrics.map((m) => (
+                                        <span
+                                            key={m.label}
+                                            className="rounded-full border border-accent/30 bg-surface px-3 py-1 label-mono !text-[10px] !tracking-[0.06em] text-ink"
+                                        >
+                                            <span className="text-accent font-semibold">{m.value}</span> {m.label}
+                                        </span>
+                                    ))}
+                                </div>
+                            ) : row.pending ? (
+                                <div className="mt-3 inline-block rounded-full border border-dashed border-ink/25 px-3 py-1 label-mono !text-[10px] !tracking-[0.06em] text-ink-soft/70">
+                                    {row.pending}
+                                </div>
+                            ) : null}
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Shared legend — the one axis every row above is plotted against */}
+            <div className="px-5 sm:px-7 pb-5 pt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 label-mono !text-[9px] !tracking-[0.08em] text-ink-soft/60 border-t border-ink/10">
+                <span className="pt-3 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                    {model.stages.map((stage, i) => (
+                        <span key={stage} className="flex items-center gap-1.5">
+                            {i > 0 && <span aria-hidden="true">&rarr;</span>}
+                            {stage}
+                        </span>
+                    ))}
+                </span>
             </div>
         </div>
     );
@@ -394,6 +493,9 @@ export function CaseStudyOverlay({
                                         }
                                         if (b.kind === 'iceberg') {
                                             return <Iceberg key={i} model={b.model} />;
+                                        }
+                                        if (b.kind === 'roletrack') {
+                                            return <RoleTrack key={i} model={b.model} />;
                                         }
                                         // gallery
                                         return (

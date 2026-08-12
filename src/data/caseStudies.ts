@@ -20,14 +20,31 @@ export interface IcebergModel {
     outOfScope?: string[];                             // deliberately parked
 }
 
+// A shared maturity axis with one row per workstream — for programmes running
+// several tracks at once, at genuinely different speeds. Real numbers where a
+// track has them (`metrics`); an honest, visible placeholder where it doesn't
+// (`pending`) — never both, and never a metric invented to fill the gap.
+export interface RoleTrackModel {
+    prompt: string;
+    stages: string[];
+    rows: {
+        role: string;
+        stageIndex: number;
+        status: string;
+        metrics?: { value: string; label: string }[];
+        pending?: string;
+    }[];
+}
+
 // Ordered content blocks let each section interleave copy, pull-quotes,
-// imagery, and the signature iceberg diagram exactly where they belong —
-// editorial, not a rigid template.
+// imagery, and diagrams exactly where they belong — editorial, not a rigid
+// template.
 export type CaseBlock =
     | { kind: 'text'; text: string }
     | { kind: 'quote'; text: string }
     | { kind: 'gallery'; items: CaseFigure[] }
-    | { kind: 'iceberg'; model: IcebergModel };
+    | { kind: 'iceberg'; model: IcebergModel }
+    | { kind: 'roletrack'; model: RoleTrackModel };
 
 export interface CaseSection {
     n: string;          // "01"
@@ -187,6 +204,164 @@ export const caseStudies: Record<string, CaseStudy> = {
                         kind: 'text',
                         text:
                             'It also showed how far evidence travels when it’s framed as a system. The same journey map that diagnosed the problem became the input for AI-use-case sizing and for redesigning the intake process — proof that one well-mapped journey can align product, process, and automation teams around a single shared reality.',
+                    },
+                ],
+            },
+        ],
+    },
+    '#it-key-roles': {
+        href: '#it-key-roles',
+        kicker: 'Organisation · Nestlé IT · 2026',
+        title: 'IT Key Roles',
+        summary:
+            "A shared, evidence-based map of where an AI agent can genuinely help the people who keep enterprise IT running: Relationship Managers, Product Managers, and Architects, each doing a different job and each needing a different reason to trust it.",
+        facts: [
+            { value: '3', label: 'IT roles mapped' },
+            { value: '5/9', label: 'RM use cases cleared' },
+            { value: '73%', label: 'Go rate, from 33%' },
+            { value: '86%', label: 'Fewer confidently-wrong sessions' },
+        ],
+        sections: [
+            {
+                n: '01',
+                heading: 'Scenario & result',
+                blocks: [
+                    {
+                        kind: 'text',
+                        text:
+                            "Nestlé IT's Digital Agent has to work for the people who keep the organisation's IT running day to day, not just for someone browsing a catalogue once. That's three quite different jobs: Relationship Managers (the BRMs and FRMs who sit between IT and the business), Product and Programme Managers, and Architects across four specialisms, from Enterprise down to Specification. Each group has its own tools, its own workflow, and its own reason to trust, or not trust, a machine doing part of that job for them.",
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            "Requested by the OCIO and run in direct partnership with Journey Management, this has been end-to-end research across all three roles since February 2026. It started with Relationship Managers and Product Managers together; Architects joined toward the end of Q2. The brief was never just to “find some AI use cases.” It was to build one shared, validated map, a Journey Atlas, that roadmap decisions could start from instead of re-litigating the same assumptions every quarter.",
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            "By mid-2026 that Atlas was doing three things nobody had explicitly asked it to do. It became the default starting point for roadmap decisions instead of everyone arguing from a blank page. It sharpened exactly which automation opportunities were worth building first, role by role, rather than wherever the loudest request came from. And it put a finding in front of leadership that product conversations alone hadn't surfaced: data quality across the underlying systems wasn't a nice-to-have, it was the prerequisite the whole strategy depended on.",
+                    },
+                ],
+            },
+            {
+                n: '02',
+                heading: 'Why it matters',
+                blocks: [
+                    {
+                        kind: 'quote',
+                        text: "Not every friction point is something an agent can fix. Some of it is a missing rule, and no amount of AI makes up for a rule that doesn't exist yet.",
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            "The clearest proof of that came from the Relationship Manager workstream, the one far enough along to have hard numbers behind it. In the second round of user testing, moving the agent from GPT to Opus 4.5 lifted the go rate from 33% to 73% and cut sessions where the agent gave a confidently wrong answer from seven down to one. Ease of use scored a perfect 7 out of 7, and people hit roughly four times as many “moments of value” per session as they had with the earlier version.",
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            "None of that came from a cleverer prompt. It came from treating the model underneath the agent as a design decision with measurable consequences, and testing it the way you'd test a journey or a screen: with real people, a scoring rubric, and a clear go or no-go bar, not a demo.",
+                    },
+                ],
+            },
+            {
+                n: '03',
+                heading: 'How we did it',
+                blocks: [
+                    {
+                        kind: 'text',
+                        text:
+                            "The research ran on a structured funnel: a closed survey to prioritise which stages of work mattered most, co-discovery interviews to understand those stages properly, then task-level prioritisation to decide what to build first. To pressure-test findings before they reached real people, synthetic PM and Architect research participants were built in Copilot Studio, sitting on top of an earlier Dataverse-based research setup. It's the same instinct behind the synthetic-user work elsewhere in this practice: cheap rehearsal before spending an expensive person's time.",
+                    },
+                    {
+                        kind: 'roletrack',
+                        model: {
+                            prompt: "Same programme, three different clocks. Here's where each role actually stands today, not where a roadmap slide says they stand.",
+                            stages: ['Opportunity Mapping', 'Co-creation', 'Validation & UAT', 'Live'],
+                            rows: [
+                                {
+                                    role: 'Relationship Managers',
+                                    stageIndex: 2,
+                                    status: 'A real agent, in real testing, with a conditional go-live behind it and a named list of what has to close before the next round.',
+                                    metrics: [
+                                        { value: '5/9', label: 'use cases cleared' },
+                                        { value: '73%', label: 'go rate, from 33%' },
+                                        { value: '86%', label: 'fewer wrong answers' },
+                                    ],
+                                },
+                                {
+                                    role: 'Architects',
+                                    stageIndex: 1,
+                                    status: 'Two rounds of workshop co-creation done across four specialisms, fifteen opportunities drafted with full traceability back to the source notes.',
+                                    pending: 'Scored results: not yet, no UAT round has run',
+                                },
+                                {
+                                    role: 'Product & Programme Managers',
+                                    stageIndex: 0,
+                                    status: 'Journey atlas and opportunity backlog mapped across fifteen-plus markets; a synergy check against the RM opportunities is underway now.',
+                                    pending: 'Scored results: not yet, still at opportunity-mapping stage',
+                                },
+                            ],
+                        },
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            "Relationship Managers are the furthest along of the three roles: an actual agent in actual testing, not just a list of opportunities. The most recent round was 12 moderated one-to-one sessions with BRMs and FRMs across the AMS, AOA, and Europe zones, built to answer one question for the OCIO: is this ready to go live, fully or conditionally? The result was a conditional go, with five of the nine tested use cases clearing the bar, and a clear next list: 39 open content items to fold into the knowledge base and six integration gaps to close before a wider rollout.",
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            "Two findings from that round are worth keeping past this project. First, a content-coverage gap and an accuracy failure look the same to a frustrated user but need completely different fixes and completely different messaging to leadership: one is a librarian problem, the other is a trust problem. Second, the fabrication-on-tool-failure pattern, a confident answer where the honest response would have been “I couldn't check that,” needs to be named plainly in executive updates rather than folded into a generic accuracy score. It's the failure mode most likely to damage trust the moment it happens in front of a real user instead of a moderator.",
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            "Underneath the sessions sits a Go/No-Go scoring system built to weight readiness across use cases, plus two reusable Claude skills, one for synthesis and one for reporting, so the next wave doesn't start from a blank page either.",
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            "A separate look at the RM opportunity backlog earlier in the year found an uncomfortable pattern: the strongest opportunity cards were structural fixes (compliance automation, financial approval, security lifecycle), while the things RMs actually said they needed help with had the weakest coverage. “Help me find what already exists,” the single most common pain point, had no opportunity addressing it at all. Neither did “help me frame my request properly.” A backlog can look busy and still be solving the wrong layer of the problem.",
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            "Product and Programme Managers got their own journey atlas, built alongside the Zone FRM atlas from qualitative research across 15-plus markets and distilled into one-page briefs leadership could actually read. Pain points are tracked on a Goal, Friction, Emotion, Impact framework; Emotion was added after an earlier version of the model turned out to be missing it. The same gap shows up here as with RMs: the opportunities on the table under-serve the basics PMs actually ask for, finding what exists, framing a request, understanding governance, more than they serve the bigger structural fixes. A synergy analysis between the PM and RM opportunity sets is underway now, complicated by the ordinary reality that opportunities keep getting edited in live sessions faster than the shared spreadsheet can catch up with them.",
+                    },
+                    {
+                        kind: 'quote',
+                        text: "A security agent is only ever as good as the security standard behind it. If that standard doesn't exist yet, the problem isn't an AI problem. It's a policy problem wearing an AI costume.",
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            "Architects joined most recently and are still in active synthesis rather than testing. Better to say that plainly than blur the three roles together. The backbone is a pain-point tracker spanning four architect specialisms, Enterprise, Strategic Portfolio, Solution, and Specification, each entry tied to a stage, a job-to-be-done, and a supporting quote. Three pain points reached co-creation first: security reviews delaying ARM approval, a missing architecture repository forcing rework, and manual ARM authoring slowing everything down. Getting there meant sorting 29 sticky notes from workshop boards by function, then working those into 15 target-state capabilities and 15 fully traceable opportunities, each one still linked back to the sticky note it came from.",
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            "A second round of co-creation added three more pain points, mostly about chasing approvers and low attendance at governance sessions, and the two rounds now sit merged on one cross-referenced board, converging on three areas: approvals, security, and ARM.",
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            "Not every good idea out of that process is an agent opportunity, and the workstream is explicit about the difference: pre-ARM security alignment meetings, clearer rules on permitted data transfers, involving architects before a purchase instead of at go-live. These are process and policy fixes, tagged as such, and several of the AI opportunities can't ship until their matching policy opportunity exists. Measured against the RM deck, which is the standard this work is held to, the Architect opportunities are still missing business-value estimates, alignment to Nestlé's 2026 IT roadmap, and, most of all, quotes properly sourced back to a specific session. That's the honest state of it: real structure, real prioritisation, not yet at the evidence bar the RM work has reached.",
+                    },
+                ],
+            },
+            {
+                n: '04',
+                heading: 'What I learnt',
+                blocks: [
+                    {
+                        kind: 'text',
+                        text:
+                            "The most useful move in this whole programme wasn't a research technique, it was a naming convention: tagging every opportunity as either an AI Opportunity or a Policy Opportunity. It stops a backlog from quietly filling up with automation ideas that can't ship because the rule they depend on doesn't exist, and it gives leadership a fair way to fund process fixes without dressing them up as AI work to get budget.",
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            "The RM numbers taught me something I'd suspected but hadn't proven: the model underneath an agent is a design decision, not an implementation detail. A go rate that doubles on the same use cases, the same script, the same participants, with only the model changed, means the interface was never the whole story. What comes next is putting a number on that story: working with IBM to turn validated opportunities into an actual investment case, moving from “this would help” to “this is what it costs not to do it.”",
                     },
                 ],
             },

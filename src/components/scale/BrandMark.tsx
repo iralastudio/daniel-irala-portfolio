@@ -12,15 +12,27 @@ export function BrandMark({ onHome }: { onHome: () => void }) {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed top-0 left-0 z-30 px-6 md:px-12 lg:px-20 py-5"
+            className="fixed top-0 inset-x-0 z-30 pointer-events-none"
         >
-            <button
-                onClick={onHome}
-                className="font-mono text-[12px] tracking-[0.22em] font-semibold text-ink hover:text-accent transition-colors duration-300 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                aria-label="Irala Studio — view the whole system"
-            >
-                IRALA.STUDIO
-            </button>
+            {/* Content scrolls under the wordmark in stacked mode — this fade keeps
+                the mark legible without drawing a hard bar across the page. */}
+            <div
+                aria-hidden="true"
+                className="absolute inset-x-0 top-0 h-24"
+                style={{
+                    background:
+                        'linear-gradient(180deg, var(--color-background) 0%, color-mix(in srgb, var(--color-background) 72%, transparent) 45%, transparent 100%)',
+                }}
+            />
+            <div className="relative px-6 md:px-12 lg:px-20 py-5">
+                <button
+                    onClick={onHome}
+                    className="pointer-events-auto font-mono text-[12px] tracking-[0.22em] font-semibold text-ink hover:text-accent transition-colors duration-300 rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    aria-label="Irala Studio — view the whole system"
+                >
+                    IRALA.STUDIO
+                </button>
+            </div>
         </m.header>
     );
 }

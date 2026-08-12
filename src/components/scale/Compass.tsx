@@ -132,7 +132,7 @@ export function Compass({ items }: { items: ContentListItem[] }) {
                             onFocus={() => setActive(i)}
                             aria-pressed={on}
                             className={cn(
-                                'absolute font-display font-semibold whitespace-nowrap rounded-full px-2.5 py-1 transition-[color,background-color,transform] duration-300 ease-out',
+                                'absolute font-display font-semibold whitespace-nowrap rounded-sm px-2.5 py-1 transition-[color,background-color,transform] duration-300 ease-out',
                                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                                 on ? 'text-accent scale-105' : 'text-ink/55 hover:text-ink'
                             )}

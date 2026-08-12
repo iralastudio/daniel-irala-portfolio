@@ -42,8 +42,11 @@ export function ScaleRail({ activeIndex, onJump }: { activeIndex: number; onJump
                             </span>
                             <span
                                 className={cn(
-                                    'label-mono !text-[9px] !tracking-[0.14em] transition-opacity duration-300',
-                                    active ? 'opacity-100 text-accent' : 'opacity-0 group-hover:opacity-100 text-ink-soft'
+                                    'label-mono !text-[10px] !tracking-[0.14em] transition-colors duration-300',
+                                    // Always legible: the descriptor is what explains the scale
+                                    // metaphor, so hiding it until hover loses first-time visitors.
+                                    // Full opacity — dimming this 10px label drops it under AA.
+                                    active ? 'text-accent' : 'text-ink-soft'
                                 )}
                             >
                                 {item.hint}

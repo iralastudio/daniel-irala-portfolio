@@ -12,6 +12,7 @@ import { CaseStudyOverlay } from './CaseStudyOverlay';
 import { BrandMark } from './BrandMark';
 import { ScaleRail } from './ScaleRail';
 import { MobileNav } from './MobileNav';
+import { DisplayMenu } from './DisplayMenu';
 
 // href → which scale/scene it belongs to (for rail + panel context).
 const HREF_SCENE: Record<string, number> = {
@@ -61,6 +62,7 @@ export function ScaleExperience() {
     const [selected, setSelected] = useState<string | null>(null);
     const [origin, setOrigin] = useState<{ x: number; y: number } | null>(null);
     const [flyTo, setFlyTo] = useState<FlyTo | null>(null);
+    const [releasePinned, setReleasePinned] = useState(0);
 
     const mounted = useSyncExternalStore(subscribeNever, () => true, () => false);
     const isMobile = useSyncExternalStore(
@@ -77,6 +79,34 @@ export function ScaleExperience() {
     // (which is what shows once you've zoomed into that cluster specifically).
     const panelScene = active === OVERVIEW ? overviewScene : scenes[active];
 
+    // Every content window is addressable. Without this the back button does
+    // nothing and a case study can't be sent to anyone — fatal for a portfolio.
+    const hasWindow = (href: string) => Boolean(caseStudies[href] || nodeContent[href]);
+
+    // Reflect a URL hash into open-window state. Returns false when the hash
+    // names nothing openable, which the caller treats as "close".
+    const showFromHash = useCallback((hash: string) => {
+        if (!hash || !hasWindow(hash)) return false;
+        setSelected(hash);
+        setOrigin(null); // no click to grow from — a deep link just fades in
+        const i = HREF_SCENE[hash];
+        if (typeof i === 'number') setActive(i);
+        return true;
+    }, []);
+
+    // Open on arrival if the URL already names a window, and keep the window in
+    // step with back/forward from then on.
+    useEffect(() => {
+        // Deferred so the first URL read doesn't setState inside the effect body
+        // (the same guard used for area changes below).
+        queueMicrotask(() => showFromHash(window.location.hash));
+        const onPop = () => {
+            if (!showFromHash(window.location.hash)) setSelected(null);
+        };
+        window.addEventListener('popstate', onPop);
+        return () => window.removeEventListener('popstate', onPop);
+    }, [showFromHash]);
+
     // Open the window; keep the rail/panel context in sync with what was opened.
     // `o` is the click's screen position — the window's circle-reveal grows from it.
     const onSelect = useCallback((href: string, o?: { x: number; y: number }) => {
@@ -84,6 +114,23 @@ export function ScaleExperience() {
         setOrigin(o ?? null);
         const i = HREF_SCENE[href];
         if (typeof i === 'number') setActive(i);
+        // Mark the entry as ours so closing knows whether going back is safe.
+        // Spread the existing state so the Next.js router's own entry data survives.
+        if (hasWindow(href) && window.location.hash !== href) {
+            window.history.pushState({ ...window.history.state, window: href }, '', href);
+        }
+    }, []);
+
+    // Closing should undo the click that opened it. If this history entry is one
+    // we pushed, go back (so forward re-opens); if the visitor landed straight on
+    // the deep link there is nothing of ours behind, so just drop the hash.
+    const onClose = useCallback(() => {
+        if (window.history.state?.window) {
+            window.history.back();
+            return;
+        }
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        setSelected(null);
     }, []);
 
     // Manual zoom/pan settled on an area → follow it. Deferred so we never setState
@@ -133,12 +180,14 @@ export function ScaleExperience() {
             window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
         }
+        setReleasePinned((n) => n + 1); // "the whole system" also means an un-rearranged one
         setFlyTo({ index: OVERVIEW, key: Date.now() });
     }, [stacked]);
 
     return (
         <>
             <BrandMark onHome={goHome} />
+            <DisplayMenu />
             {!stacked && <ScaleRail activeIndex={active} onJump={jumpTo} />}
 
             {stacked ? (
@@ -182,15 +231,16 @@ export function ScaleExperience() {
                             reduced={false}
                             onSelect={onSelect}
                             onAreaChange={onAreaChange}
+                            releasePinned={releasePinned}
                         />
                     </div>
 
                     <div
-                        className="absolute inset-y-0 left-0 w-full sm:w-[48%] md:w-[42%] lg:w-[38%] z-10 flex items-center"
+                        className="absolute inset-y-0 left-0 w-full sm:w-[48%] md:w-[42%] lg:w-[38%] z-10 flex overflow-y-auto overscroll-contain no-scrollbar py-16"
                         style={{
-                            background: 'color-mix(in srgb, var(--color-background) 62%, transparent)',
-                            backdropFilter: 'blur(18px)',
-                            WebkitBackdropFilter: 'blur(18px)',
+                            background: 'color-mix(in srgb, var(--color-background) 88%, transparent)',
+                            backdropFilter: 'blur(24px)',
+                            WebkitBackdropFilter: 'blur(24px)',
                             maskImage: 'linear-gradient(90deg, #000 74%, transparent 100%)',
                             WebkitMaskImage: 'linear-gradient(90deg, #000 74%, transparent 100%)',
                         }}
@@ -203,7 +253,7 @@ export function ScaleExperience() {
                         />
                     </div>
 
-                    <div className="absolute bottom-6 right-6 z-10 hidden md:flex items-center gap-2 pointer-events-none">
+                    <div className="absolute bottom-6 right-6 z-10 hidden sm:flex items-center gap-2 pointer-events-none">
                         <span className="label-mono text-ink-soft">scroll to zoom · drag to move · click to open</span>
                     </div>
                 </div>
@@ -216,7 +266,7 @@ export function ScaleExperience() {
                         study={caseStudies[selected]}
                         node={nodeContent[selected]}
                         origin={origin}
-                        onClose={() => setSelected(null)}
+                        onClose={onClose}
                         onSelect={onSelect}
                     />
                 )}

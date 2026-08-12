@@ -23,11 +23,14 @@ export function SystemMap({
     reduced,
     onSelect,
     onAreaChange,
+    releasePinned = 0,
 }: {
     flyTo: FlyTo | null;
     reduced: boolean;
     onSelect: (href: string, origin?: { x: number; y: number }) => void;
     onAreaChange?: (i: number) => void;
+    /** Bump to let every dragged-and-dropped node rejoin the simulation. */
+    releasePinned?: number;
 }) {
     const wrapRef = useRef<HTMLDivElement>(null);
     const fgRef = useRef<any>(null);
@@ -143,6 +146,18 @@ export function SystemMap({
         if (!flyTo || reduced) return;
         flyToView(flyTo.index, 1100);
     }, [flyTo, reduced, flyToView]);
+
+    // Dropping a node pins it where you left it, which is the point — but that
+    // must be undoable. Going back to the whole system unpins everything, so a
+    // rearranged map is never a dead end.
+    useEffect(() => {
+        if (!releasePinned || !data) return;
+        for (const n of data.nodes as any[]) {
+            n.fx = undefined;
+            n.fy = undefined;
+        }
+        fgRef.current?.d3ReheatSimulation();
+    }, [releasePinned, data]);
 
     // Resolve which cluster a graph-space point falls in (nearest centre within reach).
     const clusterAt = useCallback(

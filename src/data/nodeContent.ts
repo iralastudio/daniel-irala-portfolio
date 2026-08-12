@@ -163,10 +163,16 @@ export const nodeContent: Record<string, NodeContent> = {
     '#it-key-roles': {
         kicker: 'Organisation · 2026 · case study',
         title: 'IT Key Roles',
-        paragraphs: [
-            'At the organisation scale: research into key IT roles and the governance around them — making accountability, decision rights, and hand-offs legible so the enterprise can act with clarity.',
+        facts: [
+            { value: '3', label: 'IT roles mapped' },
+            { value: '5/9', label: 'RM use cases cleared' },
+            { value: '73%', label: 'Go rate, from 33%' },
+            { value: '86%', label: 'Fewer confidently-wrong sessions' },
         ],
-        note: IN_PREP,
+        paragraphs: [
+            "Ongoing research into where Nestlé IT's Digital Agent can genuinely help the three roles who run enterprise IT day to day: Relationship Managers, Product and Programme Managers, and Architects. Run with Journey Management at the request of the OCIO, it produced a shared Journey Atlas that roadmap decisions now start from.",
+            'Relationship Managers are furthest along, with an agent already through conditional-go usability testing. Product Managers and Architects are still in opportunity identification and synthesis, building toward the same evidence base RMs have already reached.',
+        ],
     },
     '#seamless': {
         kicker: 'Organisation · 2024–2025 · case study',
