@@ -240,22 +240,34 @@ export function ScaleExperience() {
                         />
                     </div>
 
-                    <div
-                        className="absolute inset-y-0 left-0 w-full sm:w-[48%] md:w-[42%] lg:w-[38%] z-10 flex overflow-y-auto overscroll-contain no-scrollbar py-16"
-                        style={{
-                            background: 'color-mix(in srgb, var(--color-background) 88%, transparent)',
-                            backdropFilter: 'blur(24px)',
-                            WebkitBackdropFilter: 'blur(24px)',
-                            maskImage: 'linear-gradient(90deg, #000 74%, transparent 100%)',
-                            WebkitMaskImage: 'linear-gradient(90deg, #000 74%, transparent 100%)',
-                        }}
-                    >
-                        <SectionPanel
-                            key={active === OVERVIEW ? 'overview' : panelScene.id}
-                            scene={panelScene}
-                            isH1={active === OVERVIEW}
-                            onSelect={onSelect}
+                    {/* pointer-events-none here + on SectionPanel's own wrapper: the box is
+                        544px (34rem) but the real text column is ~80-160px narrower (padding),
+                        so without this the padding gutter would swallow clicks meant for the
+                        canvas underneath. Real content opts back in with pointer-events-auto
+                        per element (see SectionPanel.tsx). */}
+                    <div className="absolute inset-y-0 left-0 w-full sm:w-[48%] md:w-[42%] lg:w-[38%] z-10 pointer-events-none">
+                        {/* Backing layer only: frosted tint + right-edge fade live here, behind
+                            the copy, so the mask never touches the glyphs (masking text directly
+                            dropped the arrow/meta glyphs under AA at the fade edge). */}
+                        <div
+                            aria-hidden="true"
+                            className="absolute inset-0"
+                            style={{
+                                background: 'color-mix(in srgb, var(--color-background) 88%, transparent)',
+                                backdropFilter: 'blur(24px)',
+                                WebkitBackdropFilter: 'blur(24px)',
+                                maskImage: 'linear-gradient(90deg, #000 74%, transparent 100%)',
+                                WebkitMaskImage: 'linear-gradient(90deg, #000 74%, transparent 100%)',
+                            }}
                         />
+                        <div className="relative h-full flex overflow-y-auto overscroll-contain no-scrollbar py-16">
+                            <SectionPanel
+                                key={active === OVERVIEW ? 'overview' : panelScene.id}
+                                scene={panelScene}
+                                isH1={active === OVERVIEW}
+                                onSelect={onSelect}
+                            />
+                        </div>
                     </div>
 
                     <div className="absolute bottom-6 right-6 z-10 hidden sm:flex items-center gap-2 pointer-events-none">

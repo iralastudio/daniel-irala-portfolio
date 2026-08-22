@@ -52,9 +52,13 @@ export function SectionPanel({
             initial="hidden"
             animate="show"
             exit="exit"
-            className="pointer-events-auto m-auto w-full max-w-[34rem] px-6 md:px-12 lg:px-20 py-9"
+            className="pointer-events-none m-auto w-full max-w-[34rem] px-6 md:px-12 lg:px-20 py-9"
         >
-            <m.div variants={item} className="flex items-center gap-3 mb-5">
+            {/* pointer-events-auto per block, not on the wrapper above: the wrapper's
+                own padding is a visually-transparent gutter over the map by this point
+                in the frosted fade, and capturing clicks there stole them from the
+                canvas beneath (see ScaleExperience.tsx's matching wrapper). */}
+            <m.div variants={item} className="pointer-events-auto flex items-center gap-3 mb-5">
                 <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
                 <span className="label-mono text-ink uppercase">{eyebrow}</span>
                 {descriptor && <span className="h-px w-6 bg-ink/20" aria-hidden="true" />}
@@ -63,7 +67,7 @@ export function SectionPanel({
 
             <Heading
                 variants={item}
-                className="font-display font-bold text-ink leading-[0.98] tracking-[-0.02em] text-balance"
+                className="pointer-events-auto font-display font-bold text-ink leading-[0.98] tracking-[-0.02em] text-balance"
                 style={{ fontSize: 'var(--step-4)' }}
             >
                 {scene.headline.lead}
@@ -73,7 +77,7 @@ export function SectionPanel({
             {scene.headline.sub && (
                 <m.p
                     variants={item}
-                    className="font-display italic text-ink-soft mt-3 text-balance"
+                    className="pointer-events-auto font-display italic text-ink-soft mt-3 text-balance"
                     style={{ fontSize: 'var(--step-1)' }}
                 >
                     {scene.headline.sub}
@@ -82,14 +86,14 @@ export function SectionPanel({
 
             <m.p
                 variants={item}
-                className="mt-6 text-ink-soft max-w-[46ch] text-pretty"
+                className="pointer-events-auto mt-6 text-ink-soft max-w-[46ch] text-pretty"
                 style={{ fontSize: 'var(--step-0)', lineHeight: 1.65 }}
             >
                 {scene.body}
             </m.p>
 
             {scene.cta && (
-                <m.div variants={item} className="mt-8">
+                <m.div variants={item} className="pointer-events-auto mt-8">
                     <ActionPill primary label={scene.cta.label} href={scene.cta.href} onSelect={onSelect} />
                 </m.div>
             )}
@@ -97,7 +101,7 @@ export function SectionPanel({
             {/* Project entries read as an index, not a stack of boxes — long
                 titles get the full width instead of wrapping inside a button. */}
             {scene.links && scene.links.length > 0 && (
-                <m.div variants={item} className="mt-7 border-t border-ink/12">
+                <m.div variants={item} className="pointer-events-auto mt-7 border-t border-ink/12">
                     {scene.links.map((l) => (
                         <div key={l.href + l.label} className="border-b border-ink/12">
                             <ActionPill row label={l.label} href={l.href} meta={l.meta} onSelect={onSelect} />

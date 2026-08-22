@@ -99,6 +99,20 @@ export function SystemMap({
         [data]
     );
 
+    // forceCollide keeps expanding the node disc for up to `cooldownTime` after the
+    // initial zoomToFit calls above run, so the padding they asked for gets silently
+    // eaten by physics still in motion (bbox grows after the camera already fit to
+    // the smaller, pre-expansion bbox). Re-running the same fit once the engine
+    // actually reports settled corrects the final framing without a guessed delay.
+    // Guarded to fire once, and only while still on the overview — a user who has
+    // already focused a cluster by the time this fires should not get yanked back.
+    const settledOnce = useRef(false);
+    const onEngineStop = useCallback(() => {
+        if (settledOnce.current || focused !== null) return;
+        settledOnce.current = true;
+        flyToView(-1, 400);
+    }, [flyToView, focused]);
+
     // Cursor-repel force — nudges nearby nodes away from the pointer. Gentle, so the
     // graph breathes rather than darting; constant screen radius regardless of zoom.
     const repel = useMemo(() => {
@@ -432,6 +446,7 @@ export function SystemMap({
                         if (typeof t?.k === 'number') zoomRef.current = t.k;
                     }}
                     onZoomEnd={onZoomEnd}
+                    onEngineStop={onEngineStop}
                     onNodeDragEnd={(node: any) => {
                         node.fx = node.x;
                         node.fy = node.y; // drop stays where placed
