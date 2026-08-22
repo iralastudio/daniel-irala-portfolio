@@ -10,6 +10,13 @@ export interface FlyTo { index: number; key: number }
 const INK = '#2B2A29';
 const BG = '#EBEAE8';
 
+// Screen-space floors for openable nodes (anything carrying an `href`), applied as
+// `value / globalScale` so they hold at any zoom. The designed graph-unit radii take
+// over again once you zoom past them, so the hub > project > small-project hierarchy
+// still reads up close.
+const MIN_HIT_R = 12;  // ≥24px pointer target, even at the zoomed-out overview
+const MIN_DRAW_R = 4;  // ≥8px drawn dot, below which the white keyline stops reading
+
 /**
  * SystemMap — a LIVE, freely-explorable force-directed node graph (Obsidian-style).
  * Daniel Irala sits at the centre, the four scales orbit around it as clusters
@@ -37,6 +44,11 @@ export function SystemMap({
     const [size, setSize] = useState({ w: 1280, h: 800 });
     const [data, setData] = useState<SystemMapData | null>(null);
     const [FG, setFG] = useState<any>(null);
+    // Which cluster is currently held in focus. Focusing frames the cluster, fades the
+    // other four back, and reveals every project label inside it at once — so a click
+    // on a hub, a satellite or the space around them answers "what is actually in
+    // here?" instead of reopening prose the panel is already showing.
+    const [focused, setFocused] = useState<number | null>(null);
 
     const zoomRef = useRef(1);
     const hoverNode = useRef<MapNode | null>(null);
@@ -141,11 +153,21 @@ export function SystemMap({
         }
     }, [FG, data, repel, flyToView]);
 
-    // Menu / rail jumps → smooth animated fly-to.
+    // Menu / rail jumps → smooth animated fly-to. The rail holds the same focus a map
+    // click does, so both nav surfaces produce one state rather than two; going back to
+    // the whole system (index -1) releases it.
     useEffect(() => {
         if (!flyTo || reduced) return;
+        setFocused(flyTo.index < 0 ? null : flyTo.index);
         flyToView(flyTo.index, 1100);
     }, [flyTo, reduced, flyToView]);
+
+    // Focus is a paint-only change, so it needs an explicit repaint whenever it shifts
+    // without a camera move (releasing focus by clicking outside every cluster). The
+    // simulation is at rest by then, so no frame would otherwise be drawn.
+    useEffect(() => {
+        fgRef.current?.refresh?.();
+    }, [focused]);
 
     // Dropping a node pins it where you left it, which is the point — but that
     // must be undoable. Going back to the whole system unpins everything, so a
@@ -160,15 +182,17 @@ export function SystemMap({
     }, [releasePinned, data]);
 
     // Resolve which cluster a graph-space point falls in (nearest centre within reach).
+    // Returns the cluster index: clicking inside a cluster now focuses it rather than
+    // opening a window, so the index is what the caller needs.
     const clusterAt = useCallback(
-        (x: number, y: number): string | null => {
+        (x: number, y: number): number | null => {
             if (!data) return null;
-            let best: { href: string; d: number } | null = null;
-            for (const c of data.clusters) {
+            let best: { i: number; d: number } | null = null;
+            data.clusters.forEach((c, i) => {
                 const d = Math.hypot(x - c.cx, y - c.cy);
-                if (d <= c.radius * 1.25 && (!best || d < best.d)) best = { href: c.href, d };
-            }
-            return best?.href ?? null;
+                if (d <= c.radius * 1.25 && (!best || d < best.d)) best = { i, d };
+            });
+            return best ? (best as { i: number; d: number }).i : null;
         },
         [data]
     );
@@ -182,7 +206,7 @@ export function SystemMap({
         pointer.current = { x: coords.x, y: coords.y, active: true };
         // Click affordance: everything clickable (a node, or empty canvas inside
         // a cluster) shows a pointer cursor — the hint line alone isn't enough.
-        el.style.cursor = hoverNode.current || clusterAt(coords.x, coords.y) ? 'pointer' : '';
+        el.style.cursor = hoverNode.current || clusterAt(coords.x, coords.y) !== null ? 'pointer' : '';
         const now = performance.now();
         if (now - lastReheat.current > 90) {
             lastReheat.current = now;
@@ -196,7 +220,22 @@ export function SystemMap({
         if (wrapRef.current) wrapRef.current.style.cursor = '';
     }, []);
 
-    // Click empty canvas inside a cluster → open that area's window.
+    // Frame a cluster and hold it in focus. Always flies, so the click is never silent
+    // even when the camera is already roughly on the cluster. Also reports the change
+    // up to `onAreaChange` — without this the map's own fade state disagreed with what
+    // the rail highlighted and the left panel described, which is a status-visibility
+    // bug worse than the duplicate windows this whole rework replaced.
+    const focusCluster = useCallback(
+        (i: number) => {
+            setFocused(i);
+            flyToView(i, 900);
+            onAreaChange?.(i);
+        },
+        [flyToView, onAreaChange]
+    );
+
+    // Click empty canvas inside a cluster → focus that cluster. Outside every cluster
+    // → release focus and show the whole system again, in step with the rail/panel.
     const onBackgroundClick = useCallback(
         (e: MouseEvent) => {
             const g = fgRef.current;
@@ -204,10 +243,14 @@ export function SystemMap({
             if (!g || !el || !data) return;
             const rect = el.getBoundingClientRect();
             const { x, y } = g.screen2GraphCoords(e.clientX - rect.left, e.clientY - rect.top);
-            const href = clusterAt(x, y);
-            if (href) onSelect(href, { x: e.clientX, y: e.clientY });
+            const i = clusterAt(x, y);
+            if (i !== null) focusCluster(i);
+            else {
+                setFocused(null);
+                onAreaChange?.(-1);
+            }
         },
-        [data, clusterAt, onSelect]
+        [data, clusterAt, focusCluster, onAreaChange]
     );
 
     // The radius of a circle (centred on the map origin) that contains every
@@ -249,44 +292,73 @@ export function SystemMap({
         onAreaChange(bi);
     }, [data, size, onAreaChange, reduced, overallRadius]);
 
-    // Click any node → its project window, or (if it has none) its area window.
+    // Two behaviours, and the difference is learnable in one sentence: a dot that owns
+    // an href opens it, everything else focuses its cluster. Previously every satellite
+    // and the empty space around them fell back to the cluster's window, so ~95% of a
+    // cluster's clickable surface opened the same duplicate prose.
     // The click's screen position seeds the window's circle-reveal.
     const onNodeClick = useCallback(
         (node: any, event?: MouseEvent) => {
             const n = node as MapNode;
-            const href = n.href ?? data?.clusters[n.cluster]?.href;
-            if (href && href !== '#') {
-                onSelect(href, event ? { x: event.clientX, y: event.clientY } : undefined);
+            if (n.href && n.href !== '#') {
+                setFocused(null);
+                onSelect(n.href, event ? { x: event.clientX, y: event.clientY } : undefined);
+                return;
             }
+            focusCluster(n.cluster);
         },
-        [data, onSelect]
+        [onSelect, focusCluster]
     );
 
     const drawNode = useCallback((node: any, ctx: CanvasRenderingContext2D, scale: number) => {
         const n = node as MapNode;
-        const r = n.r;
+        // Focus fades the other clusters back rather than hiding them: the surrounding
+        // system stays legible as context, which is the whole point of a map.
+        const faded = focused !== null && n.cluster !== focused;
+        const inFocus = focused !== null && n.cluster === focused;
+        // A dot you can act on that renders at 4px is indistinguishable from a
+        // decorative satellite. Floor the drawn radius in screen space so actionable
+        // always looks actionable, however far out you are. Keyed to kind, not href:
+        // hubs act (they focus their cluster) even though they no longer open a window.
+        const actionable = n.kind !== 'satellite';
+        const isHub = n.kind === 'hub';
+        const r = actionable ? Math.max(n.r, MIN_DRAW_R / scale) : n.r;
         ctx.beginPath();
         ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
+        // Hubs stay a landmark even when faded — dimmed, not hidden — because they are
+        // the other four doors out of the cluster you're in. Fading them to
+        // near-invisible (as satellites correctly do, to declutter) made the rest of
+        // the map read as disabled: nothing legible was left to click.
+        const fadedAlpha = isHub ? 0.55 : n.kind === 'satellite' ? 0.08 : 0.16;
         if (n.kind === 'satellite') {
-            ctx.globalAlpha = 0.55;
-            ctx.fillStyle = n.color;
-            ctx.fill();
-            ctx.globalAlpha = 1;
+            ctx.globalAlpha = faded ? fadedAlpha : 0.55;
         } else {
-            ctx.fillStyle = n.color;
-            ctx.fill();
+            ctx.globalAlpha = faded ? fadedAlpha : 1;
+        }
+        ctx.fillStyle = n.color;
+        ctx.fill();
+        if (n.kind !== 'satellite') {
             ctx.lineWidth = 1.4 / scale;
             ctx.strokeStyle = BG;
             ctx.stroke();
         }
-        if (n.label) {
+        ctx.globalAlpha = 1;
+        // Hub names render regardless of fade, so the four unfocused areas stay
+        // identifiable and clickable-looking. Project/satellite labels stay
+        // cluster-local — showing them everywhere at once would defeat the point of
+        // focusing one area to read it.
+        if (n.label && (!faded || isHub)) {
             // Reveal detail as you zoom in: hubs always named, projects appear
             // mid-zoom, the small centre dots only up close — so the overview stays
             // clean and a zoomed-in region reads as a clear map.
-            const isHub = n.kind === 'hub';
-            const small = n.kind === 'project' && r < 7;
-            const minK = isHub ? 0 : small ? 1.25 : 0.62;
+            // Keyed to the *designed* radius, not the screen-floored one, so the
+            // MIN_DRAW_R floor cannot drag small-project labels into the overview.
+            const small = n.kind === 'project' && n.r < 7;
+            // Focusing a cluster names everything inside it at once, at any zoom.
+            // That is the payoff for the click: it answers "what is in here?".
+            const minK = inFocus ? 0 : isHub ? 0 : small ? 1.25 : 0.62;
             if (scale >= minK) {
+                ctx.globalAlpha = faded && isHub ? 0.6 : 1;
                 const fontPx = (isHub ? 13 : 11) / scale;
                 ctx.font = `${isHub ? 700 : 600} ${fontPx}px Montserrat, system-ui, sans-serif`;
                 ctx.textAlign = 'center';
@@ -298,17 +370,29 @@ export function SystemMap({
                 ctx.strokeText(n.label, node.x, ly);
                 ctx.fillStyle = INK;
                 ctx.fillText(n.label, node.x, ly);
+                ctx.globalAlpha = 1;
             }
         }
-    }, []);
+    }, [focused]);
 
-    const pointerArea = useCallback((node: any, color: string, ctx: CanvasRenderingContext2D) => {
-        const n = node as MapNode;
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, n.r + 4, 0, 2 * Math.PI);
-        ctx.fill();
-    }, []);
+    // Hit area, not paint. `n.r + 4` is in graph units, so it shrank on screen exactly
+    // when nodes were already smallest: at the overview zoom an openable project dot was
+    // ~15px across and a small one ~8px, well under a comfortable target. Openable nodes
+    // therefore keep a floor of MIN_HIT_R screen pixels however far out you zoom, while
+    // the drawn dot keeps its designed size. Satellites are deliberately left at the old
+    // radius — they only fall back to the area window, so growing them would let them
+    // steal clicks from the project nodes sitting next to them.
+    const pointerArea = useCallback(
+        (node: any, color: string, ctx: CanvasRenderingContext2D, scale = 1) => {
+            const n = node as MapNode;
+            const r = n.kind !== 'satellite' ? Math.max(n.r + 4, MIN_HIT_R / scale) : n.r + 4;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
+            ctx.fill();
+        },
+        []
+    );
 
     return (
         <div
@@ -329,7 +413,13 @@ export function SystemMap({
                     nodeRelSize={1}
                     nodeCanvasObject={drawNode}
                     nodePointerAreaPaint={pointerArea}
-                    linkColor={() => 'rgba(43,42,41,0.13)'}
+                    linkColor={(l: any) =>
+                        focused !== null &&
+                        (l.source?.cluster ?? -1) !== focused &&
+                        (l.target?.cluster ?? -1) !== focused
+                            ? 'rgba(43,42,41,0.03)'
+                            : 'rgba(43,42,41,0.13)'
+                    }
                     linkWidth={1}
                     enableNodeDrag={!reduced}
                     enableZoomInteraction={!reduced}

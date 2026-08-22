@@ -23,7 +23,7 @@ export interface MapNode {
 }
 interface NamedNode { label: string; href: string; small?: boolean }
 export interface MapLink { source: string; target: string }
-export interface ClusterMeta { i: number; cx: number; cy: number; radius: number; label: string; href: string }
+export interface ClusterMeta { i: number; cx: number; cy: number; radius: number; label: string; href?: string }
 export interface SystemMapData {
     nodes: MapNode[];
     links: MapLink[];
@@ -50,12 +50,13 @@ function mulberry32(seed: number) {
 function hubLabel(s: Scene) {
     return s.id === 'profile' ? 'Daniel Irala' : s.kicker.split('·')[0].trim();
 }
-function hubHref(s: Scene) {
-    const m: Record<string, string> = {
-        profile: '#about', touchpoint: '#touchpoint', team: '#team',
-        organisation: '#organisation', beyond: '#thinking',
-    };
-    return m[s.id] ?? '#about';
+// Only the two hubs that hold material found nowhere else stay openable. Touchpoint,
+// Team and Organisation are aggregators: their windows restated the panel almost
+// verbatim and ended with no action, so clicking them now focuses the cluster instead
+// (see SystemMap.onNodeClick). Returning undefined is what marks that difference.
+function hubHref(s: Scene): string | undefined {
+    const m: Record<string, string> = { profile: '#about', beyond: '#thinking' };
+    return m[s.id];
 }
 function namedNodes(s: Scene): NamedNode[] {
     if (s.id === 'profile')

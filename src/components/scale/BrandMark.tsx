@@ -27,7 +27,7 @@ export function BrandMark({ onHome }: { onHome: () => void }) {
             <div className="relative px-6 md:px-12 lg:px-20 py-5">
                 <button
                     onClick={onHome}
-                    className="pointer-events-auto font-mono text-[12px] tracking-[0.22em] font-semibold text-ink hover:text-accent transition-colors duration-300 rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    className="tap pointer-events-auto inline-flex items-center font-mono text-[12px] tracking-[0.22em] font-semibold text-ink hover:text-accent transition-colors duration-300 rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     aria-label="Irala Studio — view the whole system"
                 >
                     IRALA.STUDIO

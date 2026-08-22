@@ -32,9 +32,19 @@ export function SectionPanel({
     isH1: boolean;
     onSelect: (href: string, origin?: { x: number; y: number }) => void;
 }) {
-    const Heading = isH1 ? m.h1 : m.h2;
+    // Always h2. The document's single h1 is the one in CrawlableContent, which names
+    // the person and the role — the strongest heading for search and answer engines,
+    // and server-rendered so it exists before hydration. A second visible h1 here gave
+    // the page two competing h1s. `isH1` still marks the lead scene for styling intent.
+    void isH1;
+    const Heading = m.h2;
     const eyebrow = scene.id === 'overview' ? 'Overview' : scene.id === 'profile' ? 'About me' : scene.scaleLabel;
-    const descriptor = scene.kicker.split('·')[1]?.trim() ?? '';
+    // Overview's kicker is 'Overview · the whole system' — pairing the eyebrow with
+    // that descriptor says the same thing twice ("overview" already means the whole
+    // system), unlike every other scale, where eyebrow (name) and descriptor (the
+    // scale it operates at) are two different facts. Drop it for this one scene only;
+    // the body copy right below already explains what the whole system is.
+    const descriptor = scene.id === 'overview' ? '' : scene.kicker.split('·')[1]?.trim() ?? '';
 
     return (
         <m.div

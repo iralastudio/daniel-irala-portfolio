@@ -210,9 +210,14 @@ export function ScaleExperience() {
                             <section
                                 key={s.id}
                                 id={`scene-${s.id}`}
-                                className="min-h-[100svh] snap-start flex items-center px-4 pt-24 pb-28"
+                                className="min-h-[100svh] snap-start flex items-stretch px-4 pt-18 pb-20"
                             >
-                                <div className="w-full rounded-3xl border border-ink/10 bg-[color-mix(in_srgb,var(--color-surface)_84%,transparent)] backdrop-blur-xl shadow-[0_10px_50px_rgba(43,42,41,0.08)]">
+                                {/* Cards stretch to fill the screen rather than floating at their
+                                    content height: every section then has identical proportions and
+                                    the gap between cards becomes constant (padding top + bottom)
+                                    instead of varying with how much copy a scale happens to have.
+                                    SectionPanel's own `m-auto` centres the copy inside. */}
+                                <div className="w-full flex rounded-3xl border border-ink/10 bg-[color-mix(in_srgb,var(--color-surface)_84%,transparent)] backdrop-blur-xl shadow-[0_10px_50px_rgba(43,42,41,0.08)]">
                                     <SectionPanel scene={s} isH1={i === 0} onSelect={onSelect} />
                                 </div>
                             </section>

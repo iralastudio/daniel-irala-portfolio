@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og';
 
 // Social/link-preview card (LinkedIn, Slack, iMessage, …), generated from the
 // same palette as the site so it never drifts from the brand tokens.
-export const alt = 'Daniel Irala — Design Researcher & Service Designer';
+export const alt = 'Daniel Irala: Design Researcher & Service Designer';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -54,7 +54,7 @@ export default function OpenGraphImage() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 26, color: INK_SOFT }}>
-                    <span>Daniel Irala — Design Researcher &amp; Service Designer</span>
+                    <span>Daniel Irala: Design Researcher &amp; Service Designer</span>
                     <span>Barcelona</span>
                 </div>
             </div>
