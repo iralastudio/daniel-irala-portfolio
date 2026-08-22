@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { m, useReducedMotion, type Variants } from 'framer-motion';
-import type { CaseStudy, CaseFigure, IcebergModel, RoleTrackModel } from '@/data/caseStudies';
+import type {
+    CaseStudy, CaseFigure, IcebergModel, RoleTrackModel,
+    ChainModel, MatrixModel, SwingModel,
+} from '@/data/caseStudies';
 import type { NodeContent } from '@/data/nodeContent';
 import { useDialogFocus } from '@/hooks/useDialogFocus';
 import { useAccessibility } from '@/hooks/useAccessibility';
@@ -254,6 +257,211 @@ function RoleTrack({ model }: { model: RoleTrackModel }) {
     );
 }
 
+/**
+ * Beat — the scroll-triggered reveal shared by every visual instrument below.
+ *
+ * The case study is read at the reader's own pace, so the storytelling unit is a
+ * scroll step, not a second of playback: one instrument enters, makes one claim,
+ * and stays. Children stagger in sequence so a diagram assembles rather than
+ * appearing whole, which is what makes a static picture feel narrated.
+ *
+ * `once: true` so nothing re-animates on scroll-back (re-triggering reads as a
+ * glitch, not a flourish). Reduced motion collapses the whole thing to a plain
+ * static render, never a fade with movement.
+ */
+const beatWrap: Variants = {
+    hidden: {},
+    show: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } },
+};
+const beatItem: Variants = {
+    hidden: { opacity: 0, y: 14 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: EXPO } },
+};
+
+function Beat({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+    const reduced = useReducedMotion();
+    if (reduced) return <div className={className}>{children}</div>;
+    return (
+        <m.div
+            className={className}
+            variants={beatWrap}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.25 }}
+        >
+            {children}
+        </m.div>
+    );
+}
+
+/** One staggered element inside a Beat. Static when motion is reduced. */
+function BeatItem({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+    const reduced = useReducedMotion();
+    if (reduced) return <div className={className}>{children}</div>;
+    return (
+        <m.div className={className} variants={beatItem}>
+            {children}
+        </m.div>
+    );
+}
+
+/** The shared shell every instrument sits in, so they read as one family. */
+function Instrument({ prompt, note, children }: { prompt: string; note?: string; children: React.ReactNode }) {
+    return (
+        <div className="rounded-2xl border border-ink/10 overflow-hidden bg-background/40">
+            <div className="px-5 sm:px-7 py-5 border-b border-ink/10">
+                <p className="font-display text-ink" style={{ fontSize: 'clamp(1.05rem, 1.7vw, 1.35rem)', lineHeight: 1.35 }}>
+                    <strong className="font-semibold">{prompt}</strong>
+                </p>
+            </div>
+            {children}
+            {note && (
+                <div className="px-5 sm:px-7 pb-5 pt-0 text-ink-soft" style={{ fontSize: 'var(--step--1)', lineHeight: 1.6 }}>
+                    {note}
+                </div>
+            )}
+        </div>
+    );
+}
+
+/**
+ * Chain — a sequence where each link consumes the previous link's output. The
+ * arrows are the argument: they say these roles are not three audiences, they are
+ * one pipeline, so a weakness upstream lands on someone downstream.
+ */
+function Chain({ model }: { model: ChainModel }) {
+    return (
+        <Instrument prompt={model.prompt} note={model.note}>
+            <Beat className="px-5 sm:px-7 py-6 grid gap-3 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-stretch md:gap-2">
+                {model.steps.map((s, i) => (
+                    <Fragment key={s.role}>
+                        {i > 0 && (
+                            <BeatItem className="hidden md:flex items-center justify-center text-accent/50 px-1">
+                                <svg width="22" height="10" viewBox="0 0 22 10" fill="none" aria-hidden="true">
+                                    <path d="M0 5h19M15 1l4 4-4 4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </BeatItem>
+                        )}
+                        <BeatItem className="flex">
+                            <div className="w-full rounded-xl border border-ink/12 bg-surface px-4 py-4 flex flex-col">
+                                <div className="label-mono !text-accent mb-2">{`0${i + 1}`}</div>
+                                <div className="font-display font-semibold text-ink" style={{ fontSize: 'var(--step-0)', lineHeight: 1.25 }}>
+                                    {s.role}
+                                </div>
+                                <div className="text-ink-soft mt-2" style={{ fontSize: 'var(--step--1)', lineHeight: 1.55 }}>
+                                    {s.hands}
+                                </div>
+                            </div>
+                        </BeatItem>
+                    </Fragment>
+                ))}
+            </Beat>
+        </Instrument>
+    );
+}
+
+/**
+ * Matrix — the correlation view. One row per shared gap, one column per role, so
+ * the eye reads across and sees the same problem wearing three different costumes.
+ * Rows are cards rather than table rows: the cells hold phrases, not values, and a
+ * three-column table of phrases is unreadable on a phone. Semantics stay honest
+ * via a definition list per row (role is the term, its symptom the description).
+ */
+function Matrix({ model }: { model: MatrixModel }) {
+    return (
+        <Instrument prompt={model.prompt} note={model.note}>
+            <Beat className="px-5 sm:px-7 py-6 space-y-3">
+                {model.rows.map((row) => (
+                    <BeatItem key={row.gap}>
+                        <div className="rounded-xl border border-ink/12 bg-surface overflow-hidden">
+                            <div className="flex items-baseline gap-3 px-4 pt-4 pb-3">
+                                <span className="font-display font-bold text-accent/45" style={{ fontSize: 'var(--step-0)' }}>
+                                    {row.n}
+                                </span>
+                                <h4 className="font-display font-semibold text-ink m-0" style={{ fontSize: 'var(--step-0)' }}>
+                                    {row.gap}
+                                </h4>
+                            </div>
+                            <dl className="grid gap-px bg-ink/10 sm:grid-cols-3 border-t border-ink/10 m-0">
+                                {row.cells.map((cell, ci) => (
+                                    <div key={model.columns[ci]} className="bg-surface px-4 py-3.5">
+                                        <dt className="label-mono !text-[9px] text-ink-soft/70 mb-1.5">{model.columns[ci]}</dt>
+                                        <dd className="text-ink-soft m-0" style={{ fontSize: 'var(--step--1)', lineHeight: 1.55 }}>
+                                            {cell}
+                                        </dd>
+                                    </div>
+                                ))}
+                            </dl>
+                        </div>
+                    </BeatItem>
+                ))}
+            </Beat>
+        </Instrument>
+    );
+}
+
+/**
+ * Swing — a controlled before/after. Two bars per pair, the second in accent, so
+ * the size of the change is legible before any number is read. `better` decides
+ * whether the movement is framed as a gain or a reduction, because "down 86%" and
+ * "up 40 points" are both wins here and the reader should not have to work it out.
+ */
+function Swing({ model }: { model: SwingModel }) {
+    return (
+        <Instrument prompt={model.prompt} note={model.note}>
+            <Beat className="px-5 sm:px-7 py-6 grid gap-4 sm:grid-cols-2">
+                {model.pairs.map((p) => (
+                    <BeatItem key={p.label}>
+                        <div className="rounded-xl border border-ink/12 bg-surface px-4 py-4 h-full flex flex-col">
+                            <div className="flex items-baseline justify-between gap-3">
+                                <span className="label-mono text-ink-soft/70">{p.label}</span>
+                                <span className="label-mono !text-[9px] !tracking-[0.08em] text-ink-soft/50 shrink-0">
+                                    {p.better === 'higher' ? 'higher is better' : 'lower is better'}
+                                </span>
+                            </div>
+
+                            {/* The bars are decorative; this is what a screen reader gets. */}
+                            <span className="sr-only">
+                                {`${p.label}: ${p.from.value} before, ${p.to.value} after. ${p.better === 'higher' ? 'Higher' : 'Lower'} is better.`}
+                            </span>
+
+                            <div className="flex items-baseline gap-2.5 mt-3">
+                                <span className="font-display text-ink-soft/60" style={{ fontSize: 'var(--step-1)' }}>
+                                    {p.from.value}
+                                </span>
+                                <span className="text-accent/60" aria-hidden="true">
+                                    <svg width="20" height="9" viewBox="0 0 20 9" fill="none">
+                                        <path d="M0 4.5h17M13 1l4 3.5-4 3.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                </span>
+                                <span className="font-display font-bold text-accent" style={{ fontSize: 'var(--step-2)', lineHeight: 1 }}>
+                                    {p.to.value}
+                                </span>
+                            </div>
+
+                            {/* Two tracks, same scale. The eye gets the delta before the digits. */}
+                            <div className="mt-3.5 space-y-1.5" aria-hidden="true">
+                                <div className="h-1.5 rounded-full bg-ink/8 overflow-hidden">
+                                    <div className="h-full rounded-full bg-ink/25" style={{ width: `${p.from.pct}%` }} />
+                                </div>
+                                <div className="h-1.5 rounded-full bg-ink/8 overflow-hidden">
+                                    <div className="h-full rounded-full bg-accent" style={{ width: `${p.to.pct}%` }} />
+                                </div>
+                            </div>
+
+                            {p.note && (
+                                <div className="text-ink-soft mt-3" style={{ fontSize: 'var(--step--1)', lineHeight: 1.55 }}>
+                                    {p.note}
+                                </div>
+                            )}
+                        </div>
+                    </BeatItem>
+                ))}
+            </Beat>
+        </Instrument>
+    );
+}
+
 export function CaseStudyOverlay({
     study,
     node,
@@ -496,6 +704,15 @@ export function CaseStudyOverlay({
                                         }
                                         if (b.kind === 'roletrack') {
                                             return <RoleTrack key={i} model={b.model} />;
+                                        }
+                                        if (b.kind === 'chain') {
+                                            return <Chain key={i} model={b.model} />;
+                                        }
+                                        if (b.kind === 'matrix') {
+                                            return <Matrix key={i} model={b.model} />;
+                                        }
+                                        if (b.kind === 'swing') {
+                                            return <Swing key={i} model={b.model} />;
                                         }
                                         // gallery
                                         return (

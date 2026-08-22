@@ -56,6 +56,71 @@ These are settled decisions. Filing them wastes the review's credibility:
 - **Page background is `#EBEAE8`.** If a screenshot is black, that's a preview glitch —
   re-check before writing it up.
 
+## 2b. Measurement traps — each of these has already produced a false positive
+
+Every one of these was hit in a real run of this skill. Check the trap before writing
+the finding, and say in the report which ones you ruled out.
+
+- **Screenshot pixels ≠ CSS pixels.** The capture is often scaled (a 1280×800 viewport
+  came back as an 800×500 shot — a 0.625 factor). `computer` clicks use *screenshot*
+  space, so coordinates taken from `getBoundingClientRect()` land somewhere else
+  entirely and the interaction silently does nothing. Before concluding "the control
+  doesn't work", confirm with `document.elementFromPoint(cx, cy)` that the element is
+  actually on top — if it is, your click missed, the site is fine.
+- **The preview pane draws its own overlay.** A dark round badge sits at the bottom-left
+  of every screenshot. It is not part of the page. It once appeared to cover the first
+  `MobileNav` item; hit-testing proved the button was reachable.
+- **Screenshots can be stale.** A large empty band at the bottom of the viewport is
+  almost always a capture taken mid-resize. Verify with `innerHeight`, the canvas
+  `getBoundingClientRect()`, and the fixed wrapper before believing it.
+- **`CrawlableContent` is `.sr-only` but still has geometry.** Its links measure ~65×19
+  and report `visibility: visible`. They are off-screen, not undersized tap targets.
+  Filter anything inside `.sr-only` out of every control audit.
+- **`read_page` omits content-derived accessible names.** The `ScaleRail` buttons show
+  as bare `button [ref_N]` even though their computed name is "About me THE INDIVIDUAL".
+  That is a tool limitation. Confirm names from the DOM before filing a missing-label bug.
+- **A settled simulation has zero pixel churn** — verified. So a canvas pixel diff *is* a
+  valid way to time "did anything move", but only after the graph has come to rest.
+- **`AnimatePresence` exit does not progress while a `javascript_tool` call is running.**
+  This one produced a false P2 ("focus is never restored when a window closes"). The
+  dialog was simply still mounted, so React had not run the `useDialogFocus` cleanup yet.
+  Waiting longer *inside* the same evaluation does not help — 6s of `setTimeout` showed
+  the dialog still present, and it unmounted the moment the call ended. **Never assert
+  anything about unmount-time behaviour from within one evaluation.** Arm a listener or
+  stash state on `window`, return, let a screenshot or a second call pass wall-clock
+  time, then read the result in a *separate* call. Verified conclusion for this repo:
+  focus **is** correctly restored to the trigger (`ActionPill` row) after the exit
+  completes, roughly 10s later under instrumentation.
+- **Never sample with `requestAnimationFrame` when an animation is involved.** rAF *is*
+  the animation's own queue, so a busy animation starves the sampler and you time your
+  own poll instead of the app. This produced a false P2: "the rail takes 789ms to show
+  the item you clicked". Re-measured with a `MutationObserver` it was **8ms**, and 22ms
+  with a `setTimeout(4)` poll. Use `MutationObserver` for attribute/DOM changes and
+  `setTimeout` for coarse polling. Reserve rAF strictly for reading canvas pixels once
+  the scene is known to be at rest.
+- **Canvas hit areas cannot be probed from the browser pane.** The cursor is `pointer`
+  across the entire `force-graph-container`, including 300px from any node, so cursor
+  state proves nothing. The shadow canvas that force-graph hit-tests against is created
+  offscreen and never appended, so `document.querySelectorAll('canvas')` returns only
+  the visible one. Verify node hit sizing by arithmetic (measure the drawn diameter in
+  pixels, derive `globalScale` from a node of known `r`, then compute), and say plainly
+  that an on-device click is the confirming test.
+- **Derive the zoom from the view you are actually in.** A project node measured 14.7px
+  in a cluster-zoomed view and 7.9px at the true overview, because `globalScale` differs
+  (≈0.70 vs ≈0.375). Always state which view a node measurement came from; the landing
+  view is the one that matters for a first-time visitor.
+- **Synthetic `document.dispatchEvent(new KeyboardEvent('keydown'))` is not a key press.**
+  It does not reach handlers bound to the dialog element, so Esc appeared to "not close"
+  the window in one run and to close it in another. Drive dismissal through the real
+  control (`button[aria-label="Close case study"]`) before concluding anything about
+  keyboard dismissal.
+
+**Read the implementation before proposing a fix.** A run of this skill filed "set
+`active` optimistically in `jumpTo`" — but `jumpTo` already calls `setActive(i)`
+synchronously on the first line. The real cause of the 789ms lag is main-thread
+contention from the camera animation delaying React's commit. A wrong fix in a finding
+is worse than no fix: it gets applied. Quote the line you are proposing to change.
+
 ## 3. Nielsen's 10 — score 1-5 each
 
 One score **and one concrete finding per heuristic**, ten of ten, no exceptions. A
@@ -116,9 +181,10 @@ measured under.
 
 Check specifically:
 
-- **`ScaleRail`** — buttons carry no `.tap` and no min-height, and the rail is
-  `hidden sm:flex`, so it renders from 640px. Confirm whether a touch device in the
-  640-767px band gets the rail, and if so whether its targets clear 44px.
+- **`ScaleRail`** — do **not** file its 149×32 buttons as undersized. `MOBILE_QUERY` is
+  `(max-width: 767px), (hover: none) and (pointer: coarse)` and `ScaleExperience`
+  renders `{!stacked && <ScaleRail/>}`, so a coarse pointer always gets stacked mode and
+  never sees the rail at any width. Its lack of `.tap` is correct by construction.
 - **`MobileNav`** — `min-h-[48px]`, horizontally scrolling. Verify the active item
   auto-scrolls into view and that no item is unreachable behind the edge fades.
 - **`DisplayMenu`** — 40px trigger with `.tap`; the switches and size buttons too.
@@ -149,7 +215,9 @@ Measure:
   slow connection.
 - **Input → first visual change**, timed, for: node click → circle reveal starts; rail
   button → camera begins moving; `MobileNav` tap → scroll starts; `DisplayMenu` trigger →
-  popover appears.
+  popover appears. **Time these with `MutationObserver`, never rAF** (see the traps
+  section). Known-good baselines, so a regression is obvious: rail `aria-current` 8ms,
+  window dialog present 42ms, canvas first movement 71ms.
 - **Simulation cost while panning/zooming** — a live d3-force sim under interaction.
   Check for dropped frames; `read_console_messages` for violation warnings.
 - **Is there any indication during the 1100ms camera flight** that the input registered?
