@@ -6,6 +6,7 @@ import { forceX, forceY, forceCollide } from 'd3-force';
 import { buildSystemMap, type SystemMapData, type MapNode } from '@/lib/systemMap';
 import { paintNode, paintLink, paintHitArea, PAR_AMP, K_PERSP } from '@/lib/mapPaint';
 import { runSignature, createSigState, type SigState, type SignatureProps } from '@/lib/mapSignature';
+import { useMapMotion, FLY_MS } from '@/lib/mapMotion';
 
 export interface FlyTo { index: number; key: number }
 export type { SignatureProps };
@@ -45,6 +46,9 @@ export function SystemMap({
     // on a hub, a satellite or the space around them answers "what is actually in
     // here?" instead of reopening prose the panel is already showing.
     const [focused, setFocused] = useState<number | null>(null);
+    // Hover lift, focus fade, click ripple (Phase 2): eased values the paint reads.
+    const motion = useMapMotion(data, focused, reduced);
+    const { dimOf, inOf, liftOf, linkLift, addRipple } = motion;
 
     const zoomRef = useRef(1);
     const hoverNode = useRef<MapNode | null>(null);
@@ -236,7 +240,7 @@ export function SystemMap({
     useEffect(() => {
         if (!flyTo || reduced) return;
         setFocused(flyTo.index < 0 ? null : flyTo.index);
-        flyToView(flyTo.index, 1100);
+        flyToView(flyTo.index, FLY_MS);
     }, [flyTo, reduced, flyToView]);
 
     // Focus is a paint-only change, so it needs an explicit repaint whenever it shifts
@@ -309,7 +313,7 @@ export function SystemMap({
     const focusCluster = useCallback(
         (i: number) => {
             setFocused(i);
-            flyToView(i, 900);
+            flyToView(i, FLY_MS);
             onAreaChange?.(i);
         },
         [flyToView, onAreaChange]
@@ -382,25 +386,26 @@ export function SystemMap({
         (node: any, event?: MouseEvent) => {
             const n = node as MapNode;
             if (n.href && n.href !== '#') {
+                addRipple(n); // the window's circle reveal grows from this ring
                 setFocused(null);
                 onSelect(n.href, event ? { x: event.clientX, y: event.clientY } : undefined);
                 return;
             }
             focusCluster(n.cluster);
         },
-        [onSelect, focusCluster]
+        [onSelect, focusCluster, addRipple]
     );
 
     // Paint lives in src/lib/mapPaint.ts; these wrappers hand it the live state.
     const drawNode = useCallback(
         (node: any, ctx: CanvasRenderingContext2D, scale: number) =>
-            paintNode(node, ctx, scale, { focused, offsetOf, sig: sigRef.current }),
-        [focused, offsetOf]
+            paintNode(node, ctx, scale, { offsetOf, sig: sigRef.current, dim: dimOf, focusIn: inOf, lift: liftOf }),
+        [offsetOf, dimOf, inOf, liftOf]
     );
     const drawLink = useCallback(
         (link: any, ctx: CanvasRenderingContext2D, scale: number) =>
-            paintLink(link, ctx, scale, { focused, offsetOf, linkT: sigRef.current.linkT, hover: hoverNode.current }),
-        [focused, offsetOf]
+            paintLink(link, ctx, scale, { offsetOf, linkT: sigRef.current.linkT, dim: dimOf, lift: linkLift }),
+        [offsetOf, dimOf, linkLift]
     );
     const pointerArea = useCallback(
         (node: any, color: string, ctx: CanvasRenderingContext2D, scale = 1) =>
@@ -429,17 +434,19 @@ export function SystemMap({
                     nodePointerAreaPaint={pointerArea}
                     linkCanvasObject={drawLink}
                     linkCanvasObjectMode={() => 'replace'}
-                    autoPauseRedraw={!sigActive}
+                    autoPauseRedraw={!sigActive && !motion.busy}
                     onRenderFramePre={() => {
-                        // Ease the parallax toward the pointer once per frame (~120 ms
-                        // settle at 60 fps), so the field glides rather than jitters, and
-                        // refresh where the camera is looking for the perspective offset.
+                        // Ease the parallax toward the pointer once per frame (~400 ms
+                        // settle), so the field glides rather than jitters; refresh where
+                        // the camera looks (perspective) and advance the Phase 2 clock.
                         const p = par.current;
-                        p.x += (p.tx - p.x) * 0.055; // ~400 ms settle: slow and soft
+                        p.x += (p.tx - p.x) * 0.055;
                         p.y += (p.ty - p.y) * 0.055;
                         const g = fgRef.current;
                         if (g) camCentre.current = g.screen2GraphCoords(size.w / 2, size.h / 2);
+                        motion.framePre();
                     }}
+                    onRenderFramePost={(ctx: CanvasRenderingContext2D, scale: number) => motion.framePost(ctx, scale, offsetOf)}
                     enableNodeDrag={!reduced}
                     enableZoomInteraction={!reduced}
                     enablePanInteraction={!reduced}
@@ -458,6 +465,7 @@ export function SystemMap({
                     }}
                     onNodeHover={(n: any) => {
                         hoverNode.current = (n as MapNode) ?? null;
+                        motion.onHover(hoverNode.current);
                         const el = wrapRef.current;
                         if (el) el.style.cursor = n ? 'pointer' : el.style.cursor;
                     }}

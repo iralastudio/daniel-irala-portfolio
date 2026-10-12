@@ -75,6 +75,10 @@ export function ScaleExperience() {
     const [origin, setOrigin] = useState<{ x: number; y: number } | null>(null);
     const [flyTo, setFlyTo] = useState<FlyTo | null>(null);
     const [releasePinned, setReleasePinned] = useState(0);
+    // The "scroll to zoom · drag · click" hint has done its job once the visitor has
+    // touched the map; it then fades out and leaves (Phase 2d).
+    const [hintGone, setHintGone] = useState(false);
+    const dismissHint = useCallback(() => setHintGone(true), []);
 
     // Signature sequence (Phase 3 of docs/MOTION-PLAN-2026-10-12.md): the overview's
     // accent word is drawn as points on the canvas, which then fly out to become the
@@ -290,6 +294,8 @@ export function ScaleExperience() {
                             transition: 'filter var(--dur-window) var(--ease-out-expo), transform var(--dur-window) var(--ease-out-expo)',
                             willChange: selected ? 'filter, transform' : undefined,
                         }}
+                        onWheelCapture={hintGone ? undefined : dismissHint}
+                        onPointerDownCapture={hintGone ? undefined : dismissHint}
                     >
                         {/* Gated on `mounted`: during hydration `stacked` is still false on
                             every device, so an ungated map would start importing the graph
@@ -337,7 +343,17 @@ export function ScaleExperience() {
                         </div>
                     </div>
 
-                    <div className="absolute bottom-6 right-6 z-10 hidden sm:flex items-center gap-2 pointer-events-none">
+                    {/* Hidden, never dimmed: at rest it is full contrast or gone (CLAUDE.md
+                        rule 4); the fade is only the way out. */}
+                    <div
+                        className="absolute bottom-6 right-6 z-10 hidden sm:flex items-center gap-2 pointer-events-none"
+                        style={{
+                            opacity: hintGone ? 0 : 1,
+                            visibility: hintGone ? 'hidden' : 'visible',
+                            transition: 'opacity 600ms var(--ease-out-expo), visibility 0s linear 600ms',
+                        }}
+                        aria-hidden={hintGone || undefined}
+                    >
                         <span className="label-mono text-ink-soft">scroll to zoom · drag to move · click to open</span>
                     </div>
                 </div>

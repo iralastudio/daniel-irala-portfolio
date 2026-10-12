@@ -68,30 +68,43 @@ const shadeOf = (hex: string, z: number): Shade => {
     return s;
 };
 
+/** Eased state the paint reads each frame (src/lib/mapMotion.ts). */
+export interface MotionEnv {
+    dim: (cluster: number) => number;      // 1 = this cluster has receded behind a focus
+    focusIn: (cluster: number) => number;  // 1 = this cluster is the one in focus
+    lift: (id: string) => { self: number; near: number };
+}
+
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
 /** One node: a depth-shaded bead plus, when earned, its label. */
 export function paintNode(
     node: any,
     ctx: CanvasRenderingContext2D,
     scale: number,
-    env: { focused: number | null; offsetOf: OffsetOf; sig: SigState }
+    env: MotionEnv & { offsetOf: OffsetOf; sig: SigState }
 ) {
     const n = node as MapNode;
-    const { focused, offsetOf, sig } = env;
+    const { offsetOf, sig } = env;
     // Focus fades the other clusters back rather than hiding them: the surrounding
-    // system stays legible as context, which is the whole point of a map.
-    const faded = focused !== null && n.cluster !== focused;
-    const inFocus = focused !== null && n.cluster === focused;
+    // system stays legible as context, which is the whole point of a map. Eased, so
+    // the fade rides the camera flight instead of snapping.
+    const dimA = env.dim(n.cluster);
+    const inA = env.focusIn(n.cluster);
     // A dot you can act on must look actionable at any zoom, so its drawn radius has
     // a screen-space floor. Keyed to kind, not href: hubs act (they focus a cluster).
     const actionable = n.kind !== 'satellite';
     const isHub = n.kind === 'hub';
-    // Depth: near nodes larger, far nodes smaller; the disc shifts with the pointer
-    // and the camera by depth, so the field reads as a volume, not a diagram.
+    // Hover brings a node and its neighbourhood forward; focus pushes the other
+    // clusters back. Both change only the *drawn* depth (size, colour, alpha), never
+    // the offset, so the hovered bead stays exactly under the cursor.
+    const { self, near } = env.lift(n.id);
     const z = n.z ?? 0.5;
+    const zDraw = Math.min(1, Math.max(0, z + (1 - z) * Math.max(self, near) * 0.8 - 0.3 * dimA));
     const { ox, oy } = offsetOf(n, scale);
     const x = node.x + ox;
     const y = node.y + oy;
-    const rz = n.r * depthScale(z);
+    const rz = n.r * depthScale(zDraw) * (1 + 0.25 * self);
     const r = actionable ? Math.max(rz, MIN_DRAW_R / scale) : rz;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, 2 * Math.PI);
@@ -105,9 +118,9 @@ export function paintNode(
         sigA = at === undefined ? 0 : Math.min(1, (sig.now - at) / sig.fade);
         if (sigA <= 0) return;
     }
-    ctx.globalAlpha = (faded ? fadedAlpha : depthAlpha(z, actionable)) * sigA;
+    ctx.globalAlpha = lerp(depthAlpha(zDraw, actionable), fadedAlpha, dimA) * sigA;
     // Depth as colour: the far layer is the cluster hue washed toward the field.
-    const shade = shadeOf(n.color, z);
+    const shade = shadeOf(n.color, zDraw);
     if (r * scale >= 3.5) {
         // Bead: a broad, soft highlight up-left, the pigment through the body, a gentle
         // fall-off to an inked rim. One light, no keyline: the white ring read as a
@@ -124,14 +137,16 @@ export function paintNode(
     ctx.fill();
     ctx.globalAlpha = 1;
     // Hub names render regardless of fade, so the unfocused areas stay identifiable.
-    // Project labels stay cluster-local, revealed by zoom or by focus.
-    if (n.label && (!faded || isHub)) {
+    // Project labels stay cluster-local: revealed by zoom, by focus, or by hover, and
+    // each of those fades them in rather than switching them on.
+    if (n.label) {
         // Keyed to the designed radius, not the floored one, so the floor cannot drag
         // small-project labels into the overview.
         const small = n.kind === 'project' && n.r < 7;
-        const minK = inFocus ? 0 : isHub ? 0 : small ? 1.25 : 0.62;
-        if (scale >= minK) {
-            ctx.globalAlpha = (faded && isHub ? 0.6 : 1) * sigA;
+        const zoomOK = scale >= (isHub ? 0 : small ? 1.25 : 0.62) ? 1 : 0;
+        const labelA = isHub ? lerp(1, 0.6, dimA) : (1 - dimA) * Math.max(zoomOK, inA, self);
+        if (labelA > 0.01) {
+            ctx.globalAlpha = labelA * sigA;
             const fontPx = (isHub ? 13 : 11) / scale;
             ctx.font = `${isHub ? 700 : 600} ${fontPx}px Montserrat, system-ui, sans-serif`;
             ctx.textAlign = 'center';
@@ -151,19 +166,24 @@ export function paintNode(
 /**
  * One link, carrying depth (Phase 1c). Drawn between the offset endpoints so it stays
  * attached; alpha and width follow the mean depth of its ends, and a near→far link
- * fades along its length, which is what makes the web recede. Links touching the
- * hovered node lift softly in that node's own hue.
+ * fades along its length, which is what makes the web recede. Links touching a
+ * hovered node lift softly in that node's own hue, eased in and out.
  */
 export function paintLink(
     link: any,
     ctx: CanvasRenderingContext2D,
     scale: number,
-    env: { focused: number | null; offsetOf: OffsetOf; linkT: number; hover: MapNode | null }
+    env: {
+        offsetOf: OffsetOf;
+        linkT: number;
+        dim: (cluster: number) => number;
+        lift: (aId: string, bId: string) => { color: string; s: number } | null;
+    }
 ) {
     const a = link.source;
     const b = link.target;
     if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return;
-    const { focused, offsetOf, linkT: t, hover } = env;
+    const { offsetOf, linkT: t } = env;
     const za: number = a.z ?? 0.5;
     const zb: number = b.z ?? 0.5;
     const oa = offsetOf(a, scale);
@@ -172,27 +192,30 @@ export function paintLink(
     const ay = a.y + oa.oy;
     const bx = b.x + ob.ox;
     const by = b.y + ob.oy;
-    const dim = focused !== null && a.cluster !== focused && b.cluster !== focused ? 0.25 : 1;
+    // A link recedes only when neither end is in the focused cluster (the smaller dim).
+    const dim = 1 - 0.75 * Math.min(env.dim(a.cluster), env.dim(b.cluster));
     const alphaAt = (z: number) => (0.05 + 0.14 * z) * dim * t;
     ctx.beginPath();
     ctx.moveTo(ax, ay);
     ctx.lineTo(bx, by);
-    if (hover !== null && (a === hover || b === hover)) {
-        const c = rgbOf(hover.color);
-        ctx.lineWidth = 1 / scale;
-        ctx.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},${(0.3 * t).toFixed(3)})`;
+    ctx.lineWidth = (0.6 + 0.4 * ((za + zb) / 2)) / scale;
+    if (Math.abs(za - zb) > 0.3) {
+        const gr = ctx.createLinearGradient(ax, ay, bx, by);
+        gr.addColorStop(0, `rgba(43,42,41,${alphaAt(za).toFixed(3)})`);
+        gr.addColorStop(1, `rgba(43,42,41,${alphaAt(zb).toFixed(3)})`);
+        ctx.strokeStyle = gr;
     } else {
-        ctx.lineWidth = (0.6 + 0.4 * ((za + zb) / 2)) / scale;
-        if (Math.abs(za - zb) > 0.3) {
-            const gr = ctx.createLinearGradient(ax, ay, bx, by);
-            gr.addColorStop(0, `rgba(43,42,41,${alphaAt(za).toFixed(3)})`);
-            gr.addColorStop(1, `rgba(43,42,41,${alphaAt(zb).toFixed(3)})`);
-            ctx.strokeStyle = gr;
-        } else {
-            ctx.strokeStyle = `rgba(43,42,41,${alphaAt((za + zb) / 2).toFixed(3)})`;
-        }
+        ctx.strokeStyle = `rgba(43,42,41,${alphaAt((za + zb) / 2).toFixed(3)})`;
     }
     ctx.stroke();
+    // Hover lift: the same path again in the hovered node's hue, eased by its lift.
+    const h = env.lift(a.id, b.id);
+    if (h && h.s > 0.01) {
+        const c = rgbOf(h.color);
+        ctx.lineWidth = 1 / scale;
+        ctx.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},${(0.3 * h.s * t).toFixed(3)})`;
+        ctx.stroke();
+    }
 }
 
 /**

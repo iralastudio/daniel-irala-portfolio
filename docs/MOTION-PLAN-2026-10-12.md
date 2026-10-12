@@ -21,19 +21,22 @@ What the research said and what transfers is kept in §6 at the end.
 
 ## Handoff (for the sessions that run the phases)
 
-- **Branch:** `feat/zoom-scale`. Prototype + Phase 0 committed as `c97e5f1`.
-- **Done:** Phase 0, Phase 1, Phase 3. Phase 4 has its tempo and the receding map,
-  nothing else. Phase 2 is untouched.
+- **Branch:** `feat/zoom-scale`. Commits `c97e5f1` (prototype + Phase 0), `e1456b8`
+  (Phase 1 + split); Phase 2 follows.
+- **Done:** Phases 0, 1, 2, 3. Phase 4 has its tempo and the receding map only.
 - **Where the map code lives:** `SystemMap.tsx` is React wiring only; paint (colour
   degradé, beads, link depth, hit areas) is `src/lib/mapPaint.ts`; the signature is
-  `src/lib/mapSignature.ts`; easing and reduced-motion are `src/lib/motion.ts`.
+  `src/lib/mapSignature.ts`; hover/focus/ripple tweens are `src/lib/mapMotion.ts`
+  (reuse its `Tweens` for the Phase 4 dolly); easing and reduced-motion are
+  `src/lib/motion.ts`.
 - **Review flags:** `?slow` stretches the signature 4×. The signature plays on every
   full page load; there is no session gate any more.
-- **Run order:** Phase 2 → decide the window model (Phase 4, A / B / C) → Phase 4 →
-  5 → 6 → 7 → 8. Phase 2 before 4 because the dolly reuses the tween loop.
-- **File size:** keep every file under 500 lines (global rule). `SystemMap.tsx` hit
-  874 during the prototype and was split; Phase 2's tween loop belongs in its own
-  module, not inline.
+- **Run order:** decide the window model (Phase 4, A / B / C) → Phase 4 → 5 → 6 →
+  7 → 8.
+- **File size:** keep every file under 500 lines (global rule); `SystemMap.tsx` is at
+  ≈495, so Phase 4 wiring must go into a module, not inline.
+- **Verifying pacing:** a hidden browser pane throttles animation frames to ≈2 per
+  second; end states can be checked there, tempo cannot. Judge tempo with it visible.
 - **Gates per phase:** `npx tsc --noEmit` clean; `npx eslint src/components/scale src/lib`
   clean; browser check at 1440 and 375; OS reduce-motion and the DisplayMenu toggle;
   `/site-review` on the touched surface. Measure frame time on anything that touches
@@ -188,7 +191,14 @@ Acceptance: no per-node `ctx.filter` (blur per node is too slow; depth is size, 
 keyline and motion); profile shows the frame under 8 ms at 1440 px with the pointer
 moving; `reduced` disables parallax only (depth drawing stays, it is static).
 
-### Phase 2 — Map feel: hover neighbourhood, focus tween, click ripple (medium)
+### Phase 2 — Map feel: hover neighbourhood, focus tween, click ripple (medium) — DONE 2026-10-12
+
+Shipped in `src/lib/mapMotion.ts` as specified below, with one deliberate deviation:
+hover and focus change the *drawn* depth (size, colour, alpha) but never the parallax
+offset, so a lifting bead cannot slide out from under the cursor and flicker the
+hover. Labels fade in by zoom, focus or hover instead of switching on. Camera flights
+are 1.2 s everywhere (`FLY_MS`). The hint line hides after the first wheel or press on
+the map. Tempo was verified for end states only (hidden pane, see Handoff).
 
 File: `SystemMap.tsx`. Adds one tween registry (`Map<id, {from, to, start, dur}>`) and a
 `rAF` loop that calls `fg.refresh()` only while a tween is live.
@@ -463,29 +473,18 @@ Files: `SystemMapBackdrop.tsx`, `ScaleExperience.tsx`.
 
 ## Log
 
-- 2026-10-12 — Plan written. Site surveyed at 1440 and 375 on the local dev server
-  (overview, Organisation focus, `#it-product` window, stacked mode).
-- 2026-10-12 — Direction chosen: A (chaos → meaning) + B (depth field, links included) +
-  dolly-in window model. Corebook hero inspected and found to be scroll-scrubbed Lottie,
-  not 3D. Plan rewritten; Phases 1–4 replaced.
-- 2026-10-12 — Phase 3 prototyped as a quick test. Found the hard way: the overlay must
-  sit above the frosted panel (`fixed z-20`) or the word is a smudge through the glass;
-  the graph must be hidden from frame zero or it shows, vanishes and rebuilds; hubs
-  should land first.
-- 2026-10-12 — Review "rushed, flat": signature slowed to ≈3.3 s; Phase 1 depth
-  prototyped (seeded `z`, size/alpha by depth, pointer parallax 34 px, camera
-  perspective 0.14, depth-painted links, colour field). ≈59 fps, 33 ms worst frame.
-- 2026-10-12 — Review: no accent-blue links, slow and soft, depth through colour, "3D
-  dots". Done: hover links in the node's own hue; per-cluster colour degradé; bead
-  shading; parallax ease 0.055. A mix helper fed its own rgb output as hex produced
-  `rgb(NaN,…)` and threw every frame.
-- 2026-10-12 — Prototype approved. Keyline removed; window tempo aligned (reveal 1.1 s,
-  blocks 0.9 s, dim 0.8 s, exit 0.5 s); map recedes behind an open window; tempo table
-  and window options A/B/C added.
-- 2026-10-12 — "Word does not show on load": session gate removed, font built from
-  parts, skip reasons logged.
-- 2026-10-12 — Committed prototype + Phase 0 as `c97e5f1`. Then: Phase 0 follow-ups
-  (inline curves → tokens; window copy static under reduce-motion) and Phase 1
-  finish (occlusion sort). `SystemMap.tsx` split from 874 to 486 lines into
-  `mapPaint.ts` and `mapSignature.ts`, no behaviour change; verified signature, depth,
-  hover, click-to-open, Escape, and reduce-motion in the browser.
+All 2026-10-12.
+
+- Plan written; site surveyed at 1440 and 375. Direction chosen (chaos → meaning,
+  depth field, dolly-in windows); Corebook's hero found to be scroll-scrubbed Lottie.
+- Phase 3 prototyped. Overlay must sit above the frosted panel; graph hidden from
+  frame zero; hubs land first.
+- "Rushed, flat": signature slowed to ≈3.3 s; Phase 1 depth prototyped (≈59 fps).
+- No accent-blue links, slow and soft, depth through colour, beads. A mix helper fed
+  its own rgb output produced `rgb(NaN,…)` and threw every frame.
+- Prototype approved: keyline removed, window tempo aligned, map recedes, tempo table.
+- "Word not showing": session gate removed, font built from parts, skips logged.
+- `c97e5f1`: prototype + Phase 0. `e1456b8`: Phase 0 follow-ups, Phase 1 occlusion,
+  `SystemMap.tsx` split 874 → 486 lines.
+- Phase 2 in `mapMotion.ts`: hover lift 450/600 ms, focus fade 800 ms, ripple 650 ms,
+  flights 1.2 s, hint leaves after first touch. End states verified.
