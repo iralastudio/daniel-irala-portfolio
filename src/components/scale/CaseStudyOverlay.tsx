@@ -174,7 +174,9 @@ export function CaseStudyOverlay({
 
                     <m.div
                         variants={container}
-                        initial="hidden"
+                        // Reduced motion: render the copy in place, no staggered rise.
+                        // `false` propagates down the variant tree to every block.
+                        initial={reduceMotion ? false : 'hidden'}
                         animate="show"
                         className="px-6 sm:px-10 lg:px-14 pt-8 pb-14"
                     >

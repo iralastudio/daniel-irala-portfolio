@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import type { ContentListItem } from '@/data/nodeContent';
 import { cn } from '@/lib/cn';
+import { EXPO } from '@/lib/motion';
 
 /**
  * Compass — the referential rendering of the #compass window: the six things
@@ -102,7 +103,7 @@ export function Compass({ items }: { items: ContentListItem[] }) {
                             transform: `rotate(${angle}deg)`,
                             transformOrigin: `${C}px ${C}px`,
                             transformBox: 'view-box',
-                            transition: 'transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)',
+                            transition: 'transform 0.7s var(--ease-out-expo)',
                         }}
                     >
                         {/* south tail (muted) */}
@@ -158,7 +159,7 @@ export function Compass({ items }: { items: ContentListItem[] }) {
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -8 }}
-                        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                        transition={{ duration: 0.3, ease: EXPO }}
                     >
                         <div className="label-mono !text-accent mb-2">{items[active].term}</div>
                         <p className="text-ink-soft" style={{ fontSize: 'var(--step-0)', lineHeight: 1.6 }}>

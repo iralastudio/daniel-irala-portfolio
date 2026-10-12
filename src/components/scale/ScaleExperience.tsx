@@ -276,7 +276,7 @@ export function ScaleExperience() {
                             opacity: 0.07,
                             maskImage: 'radial-gradient(ellipse 55% 60% at 56% 50%, #000 0%, transparent 100%)',
                             WebkitMaskImage: 'radial-gradient(ellipse 55% 60% at 56% 50%, #000 0%, transparent 100%)',
-                            transition: 'background-color 700ms cubic-bezier(0.16, 1, 0.3, 1)',
+                            transition: 'background-color 700ms var(--ease-out-expo)',
                         }}
                     />
                     {/* The window is a near layer in the same field (Phase 4): while one is
@@ -287,7 +287,7 @@ export function ScaleExperience() {
                         style={{
                             filter: selected ? 'blur(2.5px)' : 'blur(0px)',
                             transform: selected ? 'scale(0.965)' : 'scale(1)',
-                            transition: 'filter 1100ms cubic-bezier(0.16, 1, 0.3, 1), transform 1100ms cubic-bezier(0.16, 1, 0.3, 1)',
+                            transition: 'filter var(--dur-window) var(--ease-out-expo), transform var(--dur-window) var(--ease-out-expo)',
                             willChange: selected ? 'filter, transform' : undefined,
                         }}
                     >

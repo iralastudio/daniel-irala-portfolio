@@ -5,6 +5,7 @@ import { m, AnimatePresence } from 'framer-motion';
 import { Accessibility, Check } from 'lucide-react';
 import { useAccessibility } from '@/hooks/useAccessibility';
 import { cn } from '@/lib/cn';
+import { EXPO } from '@/lib/motion';
 import type { TextScale } from '@/types/accessibility';
 
 /**
@@ -103,7 +104,7 @@ export function DisplayMenu() {
                         initial={{ opacity: 0, y: -6 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                        transition={{ duration: 0.22, ease: EXPO }}
                         className="absolute right-0 mt-2 w-[248px] rounded-md border border-ink/12 bg-surface p-4 shadow-[0_12px_40px_rgba(43,42,41,0.16)]"
                     >
                         <div className="label-mono mb-1">Display</div>

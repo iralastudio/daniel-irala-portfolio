@@ -1,6 +1,7 @@
 'use client';
 
 import { m } from 'framer-motion';
+import { EXPO } from '@/lib/motion';
 
 /**
  * BrandMark — the wordmark, top-left. Clicking it frames the whole system (overview),
@@ -11,7 +12,7 @@ export function BrandMark({ onHome }: { onHome: () => void }) {
         <m.header
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.6, ease: EXPO }}
             className="fixed top-0 inset-x-0 z-30 pointer-events-none"
         >
             {/* Content scrolls under the wordmark in stacked mode — this fade keeps

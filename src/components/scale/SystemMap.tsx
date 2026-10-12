@@ -3,94 +3,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useRef, useState, useMemo, useEffect, useLayoutEffect, useCallback } from 'react';
 import { forceX, forceY, forceCollide } from 'd3-force';
-import { buildSystemMap, depthScale, depthAlpha, type SystemMapData, type MapNode } from '@/lib/systemMap';
+import { buildSystemMap, type SystemMapData, type MapNode } from '@/lib/systemMap';
+import { paintNode, paintLink, paintHitArea, PAR_AMP, K_PERSP } from '@/lib/mapPaint';
+import { runSignature, createSigState, type SigState, type SignatureProps } from '@/lib/mapSignature';
 
 export interface FlyTo { index: number; key: number }
-
-/**
- * Signature sequence (Phase 3, docs/MOTION-PLAN-2026-10-12.md): the overview's accent
- * word ("chaos.") is rasterised into points on an overlay canvas, holds its shape for a
- * beat, then every point flies out to become a node of the system. The DOM word is
- * hidden while the canvas owns it and fades back once the last point lands.
- */
-export interface SignatureProps {
-    getWordRect: () => { rect: DOMRect; text: string; font: string; color: string } | null;
-    onStart: () => void;
-    onEnd: () => void;
-}
-interface SigPoint { x0: number; y0: number; node: MapNode; delay: number; surplus: boolean }
-interface SigState {
-    phase: 'idle' | 'pending' | 'hold' | 'fly' | 'done';
-    t0: number;                  // when the hold began
-    points: SigPoint[];
-    reveal: Map<string, number>; // node id → time its point arrived
-    linkT: number;               // 0..1 multiplier on link alpha
-    now: number;                 // last frame time, read by drawNode
-    fade: number;                // ms a node takes to appear once its point lands
-}
-const SIG_HOLD = 650;       // ms the word stays legible as points
-const SIG_FLY = 1700;       // ms per point flight
-const SIG_MAX_DELAY = 650;  // ms, stagger cap (hubs lead, satellites trail)
-const SIG_NODE_FADE = 320;  // ms a node takes to appear once its point lands
-const SIG_STEP = 3;         // px sampling grid over the word
-const ACCENT = '#003ED7';
-const easeOutExpo = (u: number) => (u >= 1 ? 1 : 1 - Math.pow(2, -10 * u));
-const hex2rgb = (h: string) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
-
-// Depth as a degradé of each cluster's own hue: a far node is its colour washed
-// toward the field, a near node is the full pigment. Mixes are cached per
-// (colour, step) so the paint loop builds no strings it has built before.
-const RGB_CACHE = new Map<string, number[]>();
-const rgbOf = (hex: string) => {
-    let v = RGB_CACHE.get(hex);
-    if (!v) { v = hex2rgb(hex); RGB_CACHE.set(hex, v); }
-    return v;
-};
-const mixRgb = (A: number[], B: number[], k: number) => [
-    Math.round(A[0] + (B[0] - A[0]) * k),
-    Math.round(A[1] + (B[1] - A[1]) * k),
-    Math.round(A[2] + (B[2] - A[2]) * k),
-];
-const css = (c: number[]) => `rgb(${c[0]},${c[1]},${c[2]})`;
-const WHITE_RGB = [255, 255, 255];
-const BG_RGB = hex2rgb('#EBEAE8');
-const INK_RGB = hex2rgb('#2B2A29');
-interface Shade { pigment: string; hi: string; rim: string }
-const SHADE_CACHE = new Map<string, Shade>();
-/** The three tones a node of colour `hex` at depth `z` paints with; quantised to 1/32. */
-const shadeOf = (hex: string, z: number): Shade => {
-    const q = Math.round(Math.min(1, Math.max(0, z)) * 32);
-    const key = hex + q;
-    let s = SHADE_CACHE.get(key);
-    if (!s) {
-        const pigment = mixRgb(rgbOf(hex), BG_RGB, (1 - q / 32) * 0.62);
-        s = {
-            pigment: css(pigment),
-            hi: css(mixRgb(pigment, WHITE_RGB, 0.34)),
-            rim: css(mixRgb(pigment, INK_RGB, 0.28)),
-        };
-        SHADE_CACHE.set(key, s);
-    }
-    return s;
-};
-
-const INK = '#2B2A29';
-const BG = '#EBEAE8';
-
-// Screen-space floors for openable nodes (anything carrying an `href`), applied as
-// `value / globalScale` so they hold at any zoom. The designed graph-unit radii take
-// over again once you zoom past them, so the hub > project > small-project hierarchy
-// still reads up close.
-const MIN_HIT_R = 12;  // ≥24px pointer target, even at the zoomed-out overview
-const MIN_DRAW_R = 4;  // ≥8px drawn dot, below which the white keyline stops reading
-// Parallax amplitude in screen px at the viewport edge: a near node (z = 1) leads the
-// cursor by half of this, a far node (z = 0) lags by half. Divided by zoom in paint.
-const PAR_AMP = 34;
-// Perspective: paint positions spread away from the camera centre by depth (near
-// outward, far inward), in graph units. Because it is measured from wherever the
-// camera is looking, panning and zooming produce motion parallax, the strongest
-// depth cue there is, without any change to the physics or the hit model.
-const K_PERSP = 0.14;
+export type { SignatureProps };
 
 /**
  * SystemMap — a LIVE, freely-explorable force-directed node graph (Obsidian-style).
@@ -154,7 +72,7 @@ export function SystemMap({
     // Signature sequence state lives in a ref (read every frame by drawNode / the
     // overlay loop); `sigActive` is the one piece React needs, to keep the graph
     // repainting while the overlay runs even if the simulation has already cooled.
-    const sigRef = useRef<SigState>({ phase: 'idle', t0: 0, points: [], reveal: new Map(), linkT: 1, now: 0, fade: SIG_NODE_FADE });
+    const sigRef = useRef<SigState>(createSigState());
     const sigCanvasRef = useRef<HTMLCanvasElement>(null);
     const sigCleanup = useRef<() => void>(() => {});
     const [sigActive, setSigActive] = useState(false);
@@ -256,193 +174,25 @@ export function SystemMap({
         return f;
     }, []);
 
-    // The signature sequence. Skips itself when it has no word to sample (deep links,
-    // non-overview scenes), under reduced motion, or when it has already played this
-    // session (`?sig` in the URL forces a replay for review).
+    // The signature sequence (src/lib/mapSignature.ts). Skips itself under reduced
+    // motion or when there is no accent word to sample (deep links, other scenes).
     const startSignature = useCallback(() => {
         const g = fgRef.current;
         const el = sigCanvasRef.current;
-        // Any bail-out must release the graph the mount effect hid in advance. The
-        // reason is logged at debug level so "it didn't play" can be diagnosed from
-        // the console without instrumenting anything.
-        const abort = (reason: string) => {
-            sigRef.current.phase = 'done';
-            sigRef.current.linkT = 1;
+        const sig = sigRef.current;
+        const skip = (reason: string) => {
+            sig.phase = 'done';
+            sig.linkT = 1;
             console.debug('[signature] skipped:', reason);
         };
-        if (!g || !el || !data || !signature || reduced) return abort('not ready or reduced motion');
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return abort('OS prefers reduced motion');
-        const word = signature.getWordRect();
-        if (!word || !word.text.trim() || word.rect.width < 20) return abort('no accent word on screen');
-
-        // `?slow` stretches every duration 4× so the stages can be reviewed.
-        const K = window.location.search.includes('slow') ? 4 : 1;
-        const hold = SIG_HOLD * K;
-        const fly = SIG_FLY * K;
-        const maxDelay = SIG_MAX_DELAY * K;
-        const fade = SIG_NODE_FADE * K;
-        // A small word (narrow viewports) needs a finer grid, or there are fewer
-        // points than nodes and the word reads as a sprinkle rather than a word.
-        const step = word.rect.width > 180 ? SIG_STEP : 2;
-
-        // 1. Rasterise the word exactly as the DOM draws it, then sample it to points.
-        const pad = 6;
-        const W = Math.ceil(word.rect.width) + pad * 2;
-        const H = Math.ceil(word.rect.height) + pad * 2;
-        const off = document.createElement('canvas');
-        off.width = W;
-        off.height = H;
-        const oc = off.getContext('2d');
-        if (!oc) return abort('no 2d context');
-        oc.font = word.font;
-        oc.fillStyle = '#000';
-        const metrics = oc.measureText(word.text);
-        const ascent = metrics.fontBoundingBoxAscent;
-        if (ascent) {
-            oc.textBaseline = 'alphabetic';
-            oc.fillText(word.text, pad, pad + ascent);
-        } else {
-            oc.textBaseline = 'top';
-            oc.fillText(word.text, pad, pad);
-        }
-        const px = oc.getImageData(0, 0, W, H).data;
-        const starts: { x: number; y: number }[] = [];
-        for (let y = 0; y < H; y += step) {
-            for (let x = 0; x < W; x += step) {
-                if (px[(y * W + x) * 4 + 3] > 110) {
-                    starts.push({ x: word.rect.left - pad + x, y: word.rect.top - pad + y });
-                }
-            }
-        }
-        if (starts.length < 40) return abort(`word sampled to only ${starts.length} points (font "${word.font}")`);
-
-        // 2. Give every node a point: hubs and projects claim first, by angle from the
-        //    word's centre, so the flight fans out instead of crossing over itself.
-        const cx = word.rect.left + word.rect.width / 2;
-        const cy = word.rect.top + word.rect.height / 2;
-        const order: MapNode[] = [...(data.nodes as MapNode[])].sort((a, b) => {
-            const rank = (n: MapNode) => (n.kind === 'hub' ? 0 : n.kind === 'project' ? 1 : 2);
-            return rank(a) - rank(b);
+        if (!g || !el || !data || !signature || reduced) return skip('not ready or reduced motion');
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return skip('OS prefers reduced motion');
+        const cleanup = runSignature({
+            g, el, data, signature, sig, offsetOf,
+            getZoom: () => zoomRef.current,
+            setActive: setSigActive,
         });
-        const free = starts.map((s, i) => ({ i, a: Math.atan2(s.y - cy, s.x - cx) }));
-        const points: SigPoint[] = [];
-        const claimed = new Set<number>();
-        for (const n of order) {
-            if (free.length === 0) break;
-            const sp = g.graph2ScreenCoords(n.x ?? n.tx, n.y ?? n.ty);
-            const na = Math.atan2(sp.y - cy, sp.x - cx);
-            let best = 0;
-            let bestD = Infinity;
-            for (let k = 0; k < free.length; k++) {
-                let d = Math.abs(free[k].a - na);
-                if (d > Math.PI) d = Math.PI * 2 - d;
-                if (d < bestD) { bestD = d; best = k; }
-            }
-            const s = starts[free[best].i];
-            claimed.add(free[best].i);
-            free.splice(best, 1);
-            const dist = Math.hypot(sp.x - s.x, sp.y - s.y);
-            // Landmarks land first: hubs lead, projects follow, satellites gather last,
-            // with distance adding a little spread inside each group.
-            const lead = n.kind === 'hub' ? 0 : n.kind === 'project' ? 70 : 140;
-            points.push({ x0: s.x, y0: s.y, node: n, delay: Math.min(maxDelay, (lead + dist * 0.25) * K), surplus: false });
-        }
-        // Surplus points ride along with a random node and fade out on the way.
-        starts.forEach((s, i) => {
-            if (claimed.has(i)) return;
-            const n = order[Math.floor(Math.random() * order.length)];
-            const sp = g.graph2ScreenCoords(n.x ?? n.tx, n.y ?? n.ty);
-            const dist = Math.hypot(sp.x - s.x, sp.y - s.y);
-            points.push({ x0: s.x, y0: s.y, node: n, delay: Math.min(maxDelay, dist * 0.5 * K), surplus: true });
-        });
-
-        const accentRgb = rgbOf(ACCENT);
-
-        const sig = sigRef.current;
-        sig.phase = 'hold';
-        sig.t0 = performance.now();
-        sig.points = points;
-        sig.reveal = new Map();
-        sig.linkT = 0;
-        sig.now = sig.t0;
-        sig.fade = fade;
-        setSigActive(true);
-        signature.onStart();
-
-        const dpr = window.devicePixelRatio || 1;
-        const ctx = el.getContext('2d');
-        if (!ctx) {
-            abort('overlay has no 2d context');
-            setSigActive(false);
-            signature.onEnd();
-            return;
-        }
-        let raf = 0;
-
-        const finish = () => {
-            const now = performance.now();
-            for (const n of data.nodes as MapNode[]) if (!sig.reveal.has(n.id)) sig.reveal.set(n.id, now);
-            sig.linkT = 1;
-            sig.phase = 'done';
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.clearRect(0, 0, el.width, el.height);
-            setSigActive(false);
-            signature.onEnd();
-        };
-
-        const frame = () => {
-            const now = performance.now();
-            sig.now = now;
-            const flyStart = sig.t0 + hold;
-            if (now >= flyStart) sig.phase = 'fly';
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            ctx.clearRect(0, 0, el.width, el.height);
-
-            let pending = 0;
-            for (const p of sig.points) {
-                let u = sig.phase === 'fly' ? (now - flyStart - p.delay) / fly : 0;
-                if (u < 0) u = 0;
-                if (u >= 1) {
-                    if (p.surplus) continue;
-                    if (!sig.reveal.has(p.node.id)) sig.reveal.set(p.node.id, now);
-                    // Keep drawing the landed point until the node has faded in beneath it.
-                    if (now - (sig.reveal.get(p.node.id) ?? now) > fade) continue;
-                    u = 1;
-                } else {
-                    pending++;
-                }
-                const e = easeOutExpo(u);
-                // Land on the node where it is actually painted (depth offsets included).
-                const off = offsetOf(p.node, zoomRef.current);
-                const tp = g.graph2ScreenCoords((p.node.x ?? p.node.tx) + off.ox, (p.node.y ?? p.node.ty) + off.oy);
-                const x = p.x0 + (tp.x - p.x0) * e;
-                const y = p.y0 + (tp.y - p.y0) * e;
-                const to = rgbOf(p.node.color);
-                const r = Math.round(accentRgb[0] + (to[0] - accentRgb[0]) * e);
-                const gg = Math.round(accentRgb[1] + (to[1] - accentRgb[1]) * e);
-                const b = Math.round(accentRgb[2] + (to[2] - accentRgb[2]) * e);
-                const alpha = p.surplus ? Math.max(0, 1 - u / 0.6) : 1;
-                if (alpha <= 0) continue;
-                ctx.globalAlpha = alpha;
-                ctx.fillStyle = `rgb(${r},${gg},${b})`;
-                ctx.beginPath();
-                ctx.arc(x, y, 2.1 + 0.5 * e, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            ctx.globalAlpha = 1;
-            sig.linkT = sig.phase === 'fly' ? Math.min(1, Math.max(0, (now - flyStart - 350 * K) / fly)) : 0;
-
-            if (sig.phase === 'fly' && pending === 0 && now > flyStart + fly + maxDelay + fade) {
-                finish();
-                return;
-            }
-            raf = requestAnimationFrame(frame);
-        };
-        raf = requestAnimationFrame(frame);
-        sigCleanup.current = () => {
-            cancelAnimationFrame(raf);
-            if (sig.phase === 'hold' || sig.phase === 'fly') finish();
-        };
+        if (cleanup) sigCleanup.current = cleanup;
     }, [data, signature, reduced, offsetOf]);
     const startSigRef = useRef(startSignature);
     startSigRef.current = startSignature;
@@ -641,158 +391,20 @@ export function SystemMap({
         [onSelect, focusCluster]
     );
 
-    const drawNode = useCallback((node: any, ctx: CanvasRenderingContext2D, scale: number) => {
-        const n = node as MapNode;
-        // Focus fades the other clusters back rather than hiding them: the surrounding
-        // system stays legible as context, which is the whole point of a map.
-        const faded = focused !== null && n.cluster !== focused;
-        const inFocus = focused !== null && n.cluster === focused;
-        // A dot you can act on that renders at 4px is indistinguishable from a
-        // decorative satellite. Floor the drawn radius in screen space so actionable
-        // always looks actionable, however far out you are. Keyed to kind, not href:
-        // hubs act (they focus their cluster) even though they no longer open a window.
-        const actionable = n.kind !== 'satellite';
-        const isHub = n.kind === 'hub';
-        // Depth: near nodes larger, far nodes smaller; the whole disc shifts with the
-        // pointer by depth, so the field reads as a volume rather than a diagram.
-        const z = n.z ?? 0.5;
-        const { ox, oy } = offsetOf(n, scale);
-        const x = node.x + ox;
-        const y = node.y + oy;
-        const rz = n.r * depthScale(z);
-        const r = actionable ? Math.max(rz, MIN_DRAW_R / scale) : rz;
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, 2 * Math.PI);
-        // Hubs stay a landmark even when faded — dimmed, not hidden — because they are
-        // the other four doors out of the cluster you're in. Fading them to
-        // near-invisible (as satellites correctly do, to declutter) made the rest of
-        // the map read as disabled: nothing legible was left to click.
-        const fadedAlpha = isHub ? 0.55 : n.kind === 'satellite' ? 0.08 : 0.16;
-        // While the signature runs, a node exists only once its point has landed.
-        const sig = sigRef.current;
-        let sigA = 1;
-        if (sig.phase === 'pending' || sig.phase === 'hold' || sig.phase === 'fly') {
-            const at = sig.reveal.get(n.id);
-            sigA = at === undefined ? 0 : Math.min(1, (sig.now - at) / sig.fade);
-            if (sigA <= 0) return;
-        }
-        ctx.globalAlpha = (faded ? fadedAlpha : depthAlpha(z, actionable)) * sigA;
-        // Depth as colour: the far layer is the cluster hue washed toward the field.
-        const shade = shadeOf(n.color, z);
-        const px = r * scale; // drawn radius in screen px
-        if (px >= 3.5) {
-            // Bead shading: a broad, soft highlight up-left, the pigment through the
-            // body, and a gentle fall-off to an inked rim. One light, no keyline:
-            // the white ring read as a sticker edge and made the sphere feel fake.
-            const grad = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.05, x - r * 0.1, y - r * 0.1, r * 1.05);
-            grad.addColorStop(0, shade.hi);
-            grad.addColorStop(0.45, shade.pigment);
-            grad.addColorStop(0.85, shade.rim);
-            grad.addColorStop(1, shade.rim);
-            ctx.fillStyle = grad;
-        } else {
-            ctx.fillStyle = shade.pigment; // too small for shading to register
-        }
-        ctx.fill();
-        ctx.globalAlpha = 1;
-        // Hub names render regardless of fade, so the four unfocused areas stay
-        // identifiable and clickable-looking. Project/satellite labels stay
-        // cluster-local — showing them everywhere at once would defeat the point of
-        // focusing one area to read it.
-        if (n.label && (!faded || isHub)) {
-            // Reveal detail as you zoom in: hubs always named, projects appear
-            // mid-zoom, the small centre dots only up close — so the overview stays
-            // clean and a zoomed-in region reads as a clear map.
-            // Keyed to the *designed* radius, not the screen-floored one, so the
-            // MIN_DRAW_R floor cannot drag small-project labels into the overview.
-            const small = n.kind === 'project' && n.r < 7;
-            // Focusing a cluster names everything inside it at once, at any zoom.
-            // That is the payoff for the click: it answers "what is in here?".
-            const minK = inFocus ? 0 : isHub ? 0 : small ? 1.25 : 0.62;
-            if (scale >= minK) {
-                ctx.globalAlpha = (faded && isHub ? 0.6 : 1) * sigA;
-                const fontPx = (isHub ? 13 : 11) / scale;
-                ctx.font = `${isHub ? 700 : 600} ${fontPx}px Montserrat, system-ui, sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'bottom';
-                const ly = y - r - 4 / scale;
-                ctx.lineWidth = 3 / scale;
-                ctx.strokeStyle = BG;
-                ctx.lineJoin = 'round';
-                ctx.strokeText(n.label, x, ly);
-                ctx.fillStyle = INK;
-                ctx.fillText(n.label, x, ly);
-                ctx.globalAlpha = 1;
-            }
-        }
-    }, [focused, offsetOf]);
-
-    // Links carry the depth too (Phase 1c). Drawn between the parallaxed endpoints so
-    // they stay attached; alpha and width come from the mean depth of the two ends, and
-    // a link spanning near→far fades along its length, which is what makes the web
-    // recede instead of lying flat. Links touching the hovered node turn accent.
-    const drawLink = useCallback(
-        (link: any, ctx: CanvasRenderingContext2D, scale: number) => {
-            const a = link.source;
-            const b = link.target;
-            if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return;
-            const za: number = a.z ?? 0.5;
-            const zb: number = b.z ?? 0.5;
-            const oa = offsetOf(a, scale);
-            const ob = offsetOf(b, scale);
-            const ax = a.x + oa.ox;
-            const ay = a.y + oa.oy;
-            const bx = b.x + ob.ox;
-            const by = b.y + ob.oy;
-            const dim = focused !== null && a.cluster !== focused && b.cluster !== focused ? 0.25 : 1;
-            const t = sigRef.current.linkT; // ramps in behind the signature's points
-            const hov = hoverNode.current !== null && (a === hoverNode.current || b === hoverNode.current);
-            const alphaAt = (z: number) => (0.05 + 0.14 * z) * dim * t;
-            ctx.beginPath();
-            ctx.moveTo(ax, ay);
-            ctx.lineTo(bx, by);
-            if (hov) {
-                // Soft: the hovered node's own hue, barely stronger than the web, so
-                // the neighbourhood lifts rather than lights up.
-                const h = hoverNode.current as MapNode;
-                const c = rgbOf(h.color);
-                ctx.lineWidth = 1 / scale;
-                ctx.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},${(0.3 * t).toFixed(3)})`;
-            } else {
-                ctx.lineWidth = (0.6 + 0.4 * ((za + zb) / 2)) / scale;
-                if (Math.abs(za - zb) > 0.3) {
-                    const gr = ctx.createLinearGradient(ax, ay, bx, by);
-                    gr.addColorStop(0, `rgba(43,42,41,${alphaAt(za).toFixed(3)})`);
-                    gr.addColorStop(1, `rgba(43,42,41,${alphaAt(zb).toFixed(3)})`);
-                    ctx.strokeStyle = gr;
-                } else {
-                    ctx.strokeStyle = `rgba(43,42,41,${alphaAt((za + zb) / 2).toFixed(3)})`;
-                }
-            }
-            ctx.stroke();
-        },
+    // Paint lives in src/lib/mapPaint.ts; these wrappers hand it the live state.
+    const drawNode = useCallback(
+        (node: any, ctx: CanvasRenderingContext2D, scale: number) =>
+            paintNode(node, ctx, scale, { focused, offsetOf, sig: sigRef.current }),
         [focused, offsetOf]
     );
-
-    // Hit area, not paint. `n.r + 4` is in graph units, so it shrank on screen exactly
-    // when nodes were already smallest: at the overview zoom an openable project dot was
-    // ~15px across and a small one ~8px, well under a comfortable target. Openable nodes
-    // therefore keep a floor of MIN_HIT_R screen pixels however far out you zoom, while
-    // the drawn dot keeps its designed size. Satellites are deliberately left at the old
-    // radius — they only fall back to the area window, so growing them would let them
-    // steal clicks from the project nodes sitting next to them.
+    const drawLink = useCallback(
+        (link: any, ctx: CanvasRenderingContext2D, scale: number) =>
+            paintLink(link, ctx, scale, { focused, offsetOf, linkT: sigRef.current.linkT, hover: hoverNode.current }),
+        [focused, offsetOf]
+    );
     const pointerArea = useCallback(
-        (node: any, color: string, ctx: CanvasRenderingContext2D, scale = 1) => {
-            const n = node as MapNode;
-            const z = n.z ?? 0.5;
-            const { ox, oy } = offsetOf(n, scale);
-            const rz = n.r * depthScale(z);
-            const r = n.kind !== 'satellite' ? Math.max(rz + 4, MIN_HIT_R / scale) : rz + 4;
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.arc(node.x + ox, node.y + oy, r, 0, 2 * Math.PI);
-            ctx.fill();
-        },
+        (node: any, color: string, ctx: CanvasRenderingContext2D, scale = 1) =>
+            paintHitArea(node, color, ctx, scale, offsetOf),
         [offsetOf]
     );
 

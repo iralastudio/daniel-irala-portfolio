@@ -21,15 +21,19 @@ What the research said and what transfers is kept in §6 at the end.
 
 ## Handoff (for the sessions that run the phases)
 
-- **Branch:** `feat/zoom-scale`, everything uncommitted as of 2026-10-12. Commit the
-  prototype first, as one commit, before starting a phase.
-- **Shipped in the prototype:** Phase 0 is *not* done (the three `EXPO` copies still
-  exist); Phase 1 depth field is done except occlusion sorting; Phase 3 signature is
-  done; Phase 4 has its tempo and the receding map, nothing else. Phase 2 is untouched.
+- **Branch:** `feat/zoom-scale`. Prototype + Phase 0 committed as `c97e5f1`.
+- **Done:** Phase 0, Phase 1, Phase 3. Phase 4 has its tempo and the receding map,
+  nothing else. Phase 2 is untouched.
+- **Where the map code lives:** `SystemMap.tsx` is React wiring only; paint (colour
+  degradé, beads, link depth, hit areas) is `src/lib/mapPaint.ts`; the signature is
+  `src/lib/mapSignature.ts`; easing and reduced-motion are `src/lib/motion.ts`.
 - **Review flags:** `?slow` stretches the signature 4×. The signature plays on every
   full page load; there is no session gate any more.
-- **Run order:** decide the window model (Phase 4, A / B / C) → Phase 0 → Phase 2 →
-  Phase 4 → 5 → 6 → 7 → 8. Phase 2 before 4 because the dolly reuses the tween loop.
+- **Run order:** Phase 2 → decide the window model (Phase 4, A / B / C) → Phase 4 →
+  5 → 6 → 7 → 8. Phase 2 before 4 because the dolly reuses the tween loop.
+- **File size:** keep every file under 500 lines (global rule). `SystemMap.tsx` hit
+  874 during the prototype and was split; Phase 2's tween loop belongs in its own
+  module, not inline.
 - **Gates per phase:** `npx tsc --noEmit` clean; `npx eslint src/components/scale src/lib`
   clean; browser check at 1440 and 375; OS reduce-motion and the DisplayMenu toggle;
   `/site-review` on the touched surface. Measure frame time on anything that touches
@@ -53,8 +57,7 @@ What the research said and what transfers is kept in §6 at the end.
    reload: no line means it ran; a line names the cause. Then check that the accent
    span's rect has width (the panel entrance must have mounted the span) and that the
    750 ms start timer fires before the first interaction.
-2. ~~Phase 0 not done.~~ Done 2026-10-12; see the Phase 0 note for what was left.
-3. **Occlusion order.** Nodes are not yet painted far-to-near.
+2. ~~Phase 0~~ and ~~occlusion order~~: done 2026-10-12.
 
 ---
 
@@ -109,24 +112,11 @@ and CSS tokens in `globals.css` aligned with the tempo table rather than the num
 below (`--dur-window: 1100ms` for the reveal, `--dur-fly: 1200ms`; no `--dur-reveal`).
 Each component keeps its own durations; only the curve and variant shapes are shared.
 One intended behaviour change: the instruments now honour the site's reduce-motion
-toggle, not only the OS setting. Left for later: six inline copies of the curve in
-`BrandMark`, `Compass` (×2), `DisplayMenu`, `ScaleExperience` (×2), and the window's
-copy stagger still plays under reduce-motion (one-line fix in `CaseStudyOverlay`).
+toggle, not only the OS setting. Follow-ups, same day: every remaining inline copy of
+the curve now uses the token (`BrandMark`, `Compass`, `DisplayMenu`, `ScaleExperience`),
+and the window's copy renders in place under reduce-motion (`initial={false}`).
 
-Original spec:
-
-Files: `globals.css`, new `src/lib/motion.ts`, the three files that declare their own
-`EXPO` (`CaseStudyOverlay.tsx`, `SectionPanel.tsx`, `instruments.tsx`).
-
-- CSS tokens: `--ease-out-expo`, `--ease-reveal`, `--dur-hover: 300ms`,
-  `--dur-enter: 600ms`, `--dur-reveal: 700ms`, `--dur-fly: 1100ms`.
-- `motion.ts` exports `EXPO`, `REVEAL`, the shared `container`/`block` variants, and
-  `useMotionOK()` = `!useReducedMotion() && !settings.reduceMotion`.
-- Replace the three local `EXPO` copies. No visual change.
-
-Acceptance: `npx tsc --noEmit` clean; screenshots identical at 1440 and 375.
-
-### Phase 1 — Depth field: nodes and links (medium, the foundation)
+### Phase 1 — Depth field: nodes and links (medium, the foundation) — DONE 2026-10-12
 
 Files: `src/lib/systemMap.ts` (data), `SystemMap.tsx` (render), `ScaleExperience.tsx`
 (colour field div).
@@ -146,7 +136,7 @@ work without costing legibility or frame rate are:
 | Shading (the "3D dots") | a bead: one broad soft highlight up-left, pigment through the body, a gentle fall-off to an inked rim, via one radial gradient per node; skipped under 3.5 px where it cannot register. **No keyline**: the white ring read as a sticker edge and made the sphere feel fake (Dani, 2026-10-12) | prototyped |
 | Motion parallax (pointer) | near layer leads the cursor, far layer lags, eased per frame | prototyped |
 | Motion parallax (camera) | paint positions spread from the camera centre by depth (`K_PERSP`), so pans and zooms shift layers at different rates | prototyped |
-| Occlusion | near nodes paint last (sort by `z` once at build time) | planned |
+| Occlusion | near nodes paint last: `buildSystemMap` sorts nodes by `z` after every seeded draw, so canvas and backdrop SVG both paint far-to-near | done |
 | Texture gradient | satellites are denser in the far half (power-curve `z`), finer up close | prototyped |
 | Blur / focus pull | **not per node** (too slow); one whole-map blur only while a window is open (Phase 4) | planned |
 | Cast shadow | none; the bead's own shading is the only lighting. Drop shadows under dots read as clip art | rejected |
@@ -478,32 +468,24 @@ Files: `SystemMapBackdrop.tsx`, `ScaleExperience.tsx`.
 - 2026-10-12 — Direction chosen: A (chaos → meaning) + B (depth field, links included) +
   dolly-in window model. Corebook hero inspected and found to be scroll-scrubbed Lottie,
   not 3D. Plan rewritten; Phases 1–4 replaced.
-- 2026-10-12 — Phase 3 prototyped ahead of Phase 1 as a quick test (uncommitted, on
-  `feat/zoom-scale`): `SystemMap.tsx` (overlay canvas + sequence), `SectionPanel.tsx`
-  (`accentRef`, `hideAccent`), `ScaleExperience.tsx` (wiring). Review flags: `?sig`
-  forces a replay, `?sig&slow` stretches it 4×. Found the hard way: the overlay must
-  sit above the frosted panel (`fixed z-20`) or the word reads as a smudge through the
-  glass; the graph must be hidden from its first frame (`pending` phase) or it shows,
-  vanishes and rebuilds; landmarks (hubs) should land first, not last.
-- 2026-10-12 — Review: "felt rushed" and "feels flat". Signature slowed (hold 650 ms,
-  flight 1700 ms, stagger cap 650 ms, node fade 320 ms; ≈3.3 s total). Phase 1 depth
-  prototyped the same day: `z` per node in `systemMap.ts`, size/alpha/keyline by depth,
-  pointer parallax (34 px amplitude) + camera-centred perspective (`K_PERSP` 0.14),
-  custom link paint with depth alpha, gradient on near→far links, accent on hovered
-  links, colour field under the map, backdrop parity. Measured ≈59 fps average, 33 ms
-  worst frame, during heavy pointer movement at 800 px wide.
-- 2026-10-12 — Review: hard accent-blue hover links rejected; interaction motion must be
-  slow and soft; depth should read through colour; "3D dots" requested. Done: hover
-  links now the hovered node's own hue at 0.3; depth as a per-cluster colour degradé
-  (`shadeOf` / `depthPigment`); bead shading per node (radial gradient, skipped under
-  3.5 px); parallax ease 0.12 → 0.055. Phase 2 tempo rewritten (≥ 400 ms, EXPO).
-  Found the hard way: a mix helper must never be fed its own rgb output as hex; it
-  produced `rgb(NaN,…)` and `addColorStop` threw on every frame.
-- 2026-10-12 — Dani: prototype approved, include it; window tempo must align with the
-  map and be slower; the white keyline makes the 3D feel fake; interaction may need a
-  different model. Done: keyline removed (live map and backdrop), bead gradient
-  re-tuned (broader highlight, deeper rim), window reveal 0.7 → 1.1 s, blocks 0.6 →
-  0.9 s with 90 ms stagger and 250 ms lead, dim 0.4 → 0.8 s, exit 0.3 → 0.5 s, map
-  recedes behind an open window (blur 2.5 px + scale 0.965, 1.1 s). Tempo table added
-  to the principles; window-model options A/B/C added to Phase 4; research notes
-  extended. Still uncommitted on `feat/zoom-scale`.
+- 2026-10-12 — Phase 3 prototyped as a quick test. Found the hard way: the overlay must
+  sit above the frosted panel (`fixed z-20`) or the word is a smudge through the glass;
+  the graph must be hidden from frame zero or it shows, vanishes and rebuilds; hubs
+  should land first.
+- 2026-10-12 — Review "rushed, flat": signature slowed to ≈3.3 s; Phase 1 depth
+  prototyped (seeded `z`, size/alpha by depth, pointer parallax 34 px, camera
+  perspective 0.14, depth-painted links, colour field). ≈59 fps, 33 ms worst frame.
+- 2026-10-12 — Review: no accent-blue links, slow and soft, depth through colour, "3D
+  dots". Done: hover links in the node's own hue; per-cluster colour degradé; bead
+  shading; parallax ease 0.055. A mix helper fed its own rgb output as hex produced
+  `rgb(NaN,…)` and threw every frame.
+- 2026-10-12 — Prototype approved. Keyline removed; window tempo aligned (reveal 1.1 s,
+  blocks 0.9 s, dim 0.8 s, exit 0.5 s); map recedes behind an open window; tempo table
+  and window options A/B/C added.
+- 2026-10-12 — "Word does not show on load": session gate removed, font built from
+  parts, skip reasons logged.
+- 2026-10-12 — Committed prototype + Phase 0 as `c97e5f1`. Then: Phase 0 follow-ups
+  (inline curves → tokens; window copy static under reduce-motion) and Phase 1
+  finish (occlusion sort). `SystemMap.tsx` split from 874 to 486 lines into
+  `mapPaint.ts` and `mapSignature.ts`, no behaviour change; verified signature, depth,
+  hover, click-to-open, Escape, and reduce-motion in the browser.

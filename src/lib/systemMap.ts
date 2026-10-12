@@ -228,5 +228,11 @@ export function buildSystemMap(): SystemMapData {
         if (a && b && a !== b) links.push({ source: a, target: b });
     }
 
+    // Occlusion (Phase 1): paint order is array order, both on the canvas and in the
+    // stacked-mode SVG, so far nodes go first and near beads overlap them. Sorted
+    // last, after every seeded draw, so the layout itself is unchanged. Links refer
+    // to nodes by id, so nothing depends on the old order.
+    nodes.sort((a, b) => a.z - b.z);
+
     return { nodes, links, clusters };
 }
