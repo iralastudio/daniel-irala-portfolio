@@ -22,17 +22,18 @@ What the research said and what transfers is kept in §6 at the end.
 ## Handoff (for the sessions that run the phases)
 
 - **Branch:** `feat/zoom-scale`. Commits `c97e5f1` (prototype + Phase 0), `e1456b8`
-  (Phase 1 + split); Phase 2 follows.
-- **Done:** Phases 0, 1, 2, 3. Phase 4 has its tempo and the receding map only.
+  (Phase 1 + split), `7ce63b1` (Phase 2); Phase 4 follows.
+- **Done:** Phases 0–4 (Phase 4 as models A + B, without the anchor; see Phase 4).
+- **Waiting on Dani:** hand-written `related` lists per window in `nodeContent.ts`.
+  Until then every window shows "More at this scale" (same-scale windows, factual).
 - **Where the map code lives:** `SystemMap.tsx` is React wiring only; paint (colour
   degradé, beads, link depth, hit areas) is `src/lib/mapPaint.ts`; the signature is
   `src/lib/mapSignature.ts`; hover/focus/ripple tweens are `src/lib/mapMotion.ts`
-  (reuse its `Tweens` for the Phase 4 dolly); easing and reduced-motion are
-  `src/lib/motion.ts`.
+  (also the anchored lift); the window dolly is `src/lib/mapWindow.ts`; the window's
+  next-step list is `WindowLinks.tsx`; easing and reduced-motion are `src/lib/motion.ts`.
 - **Review flags:** `?slow` stretches the signature 4×. The signature plays on every
   full page load; there is no session gate any more.
-- **Run order:** decide the window model (Phase 4, A / B / C) → Phase 4 → 5 → 6 →
-  7 → 8.
+- **Run order:** 5 → 6 → 7 → 8. Model C (docked pane) stays a separate-branch idea.
 - **File size:** keep every file under 500 lines (global rule); `SystemMap.tsx` is at
   ≈495, so Phase 4 wiring must go into a module, not inline.
 - **Verifying pacing:** a hidden browser pane throttles animation frames to ≈2 per
@@ -96,7 +97,9 @@ What the research said and what transfers is kept in §6 at the end.
 | Window: circle reveal / dim / map recedes | 1100 / 800 / 1100 ms | shipped in prototype |
 | Window: copy blocks / stagger / first delay | 900 / 90 / 250 ms | shipped in prototype |
 | Window: close / map comes forward | 500 / 1100 ms | shipped in prototype |
-| Lateral move between windows: exit / enter / camera pan | 300 / 600 / 1000 ms | Phase 4 |
+| Window: colour wash hold / dissolve (model B) | 250 / 600 ms | done |
+| Window: camera dolly toward the node | 1100 ms (lands with the reveal) | done |
+| Lateral move between windows: exit / enter / camera | 500 / 600 / 1100 ms | done |
 | Chrome hover (pills, rail, close) | 300 ms, unchanged | existing |
 | Exits | never longer than their entrance | rule |
 
@@ -264,12 +267,18 @@ How people interact with a window is part of the design. Today the window is a m
 over a dimmed map. In the new direction the window is a **near layer in the same
 field**, and the map is pushed back into the depth behind it.
 
-**Status 2026-10-12.** The tempo half of this is in the prototype: the circle reveal
-now takes 1.1 s, the copy settles over 0.9 s per block, the map recedes behind the
-window (one blur + a 0.965 scale on the map container, 1.1 s) and comes forward on
-close. The dolly, the anchor hairline, the cluster dot and "Connected" are still to
-build. Dani also asked whether the interaction itself should change, not only its
-speed. Three candidates, for him to choose:
+**DONE 2026-10-12 as A + B** (Dani's choice). Shipped: pointer opens and lateral moves
+dolly the camera toward the node's same-cluster neighbourhood over 1.1 s, focus its
+cluster and keep the node lifted behind the glass; the reveal opens as a wash of the
+scale's colour that dissolves into the glass; a colour dot leads the header kicker;
+every window ends with "Connected" (curated `related`) or, until those lists exist,
+"More at this scale"; moving between windows crossfades with no circle and pushes
+history; closing keeps the camera on the cluster, still focused. Keyboard opens and
+deep links do not dolly. **Dropped: the anchor dot and hairline.** The dolly centres
+the node and the window is centred too, so the node always sits behind the glass,
+and the side gutters are taken by the panel and the rail; built, measured, removed.
+Continuity is carried by the wash, the header dot, the lifted node and the camera
+staying on the cluster. The original options, for the record:
 
 - **A. Dolly-in (the plan below).** Keep the centred reading surface; add the camera
   dolly toward the node, the anchor hairline, Connected. Least change, already half
@@ -285,9 +294,6 @@ speed. Three candidates, for him to choose:
   most "the system is the point", and it needs a rethink of focus management
   (`aria-modal` would go) and of the phone layout (which keeps the sheet).
 
-Recommendation: ship A + B now (B costs one gradient stop), and prototype C on a
-branch before deciding, because it changes what the site *is* for a reader.
-
 **Open (click a node, or an ActionPill row).**
 1. Click ripple on the node (Phase 2c).
 2. The camera dollies 1.4× toward the clicked node over 500 ms EXPO (`zoomToFit` on the
@@ -302,9 +308,7 @@ branch before deciding, because it changes what the site *is* for a reader.
 soft and receding, so a reader never loses where they are in the system.
 - The sticky header gains the cluster's colour dot before the kicker ("● Organisation ·
   Nestlé IT · 2025"), the same colour the node has on the map.
-- The clicked node stays rendered at full alpha and near depth beneath the window as
-  the anchor; a 1 px hairline at 20 % runs from it to the nearest edge of the article
-  (DOM overlay, positioned from the node's screen coords; hidden below 1024 px).
+- The clicked node stays lifted behind the glass (the anchor hairline was dropped).
 - **Connected.** Every window ends with a "Connected" index: the nodes this one links
   to, as `ActionPill` rows with their cluster colour dot. Source of truth: an explicit
   `related: string[]` on `nodeContent` entries, curated by hand (honest, not inferred);
@@ -488,3 +492,6 @@ All 2026-10-12.
   `SystemMap.tsx` split 874 → 486 lines.
 - Phase 2 in `mapMotion.ts`: hover lift 450/600 ms, focus fade 800 ms, ripple 650 ms,
   flights 1.2 s, hint leaves after first touch. End states verified.
+- Phase 4 (A + B) in `mapWindow.ts`, `WindowLinks.tsx`: dolly 1.1 s, colour wash,
+  header dot, "More at this scale", lateral crossfade with history. Anchor built and
+  removed (always behind the glass). Verified open, lateral, back, close, keyboard.

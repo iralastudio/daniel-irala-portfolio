@@ -5,7 +5,8 @@ import dynamic from 'next/dynamic';
 import { AnimatePresence } from 'framer-motion';
 import { scenes, overviewScene } from '@/data/scenes';
 import { useAccessibility } from '@/hooks/useAccessibility';
-import { nodeContent } from '@/data/nodeContent';
+import { nodeContent, HREF_SCENE } from '@/data/nodeContent';
+import type { Dolly } from '@/lib/mapWindow';
 import { SystemMap, type FlyTo } from './SystemMap';
 import { GROUP } from '@/lib/systemMap';
 import { SystemMapBackdrop } from './SystemMapBackdrop';
@@ -25,26 +26,6 @@ const CaseStudyOverlay = dynamic(() => loadOverlay().then((mod) => mod.CaseStudy
 // their compact summary. CrawlableContent fails the build if that ever stops being
 // true, which is what lets this check skip importing caseStudies.
 const hasWindow = (href: string) => Boolean(nodeContent[href]);
-
-// href → which scale/scene it belongs to (for rail + panel context).
-const HREF_SCENE: Record<string, number> = {
-    '#about': 0,
-    '#compass': 0,
-    '#contact': 0,
-    '#touchpoint': 1,
-    '#nespresso': 1,
-    '#digital-agent': 1,
-    '#team': 2,
-    '#synthetic-users': 2,
-    '#design-maturity': 2,
-    '#organisation': 3,
-    '#it-product': 3,
-    '#it-key-roles': 3,
-    '#seamless': 3,
-    '#thinking': 4,
-    '#podcast': 4,
-    '#talks': 4,
-};
 
 // active === -1 means "whole system / overview"; copy falls back to the tagline.
 const OVERVIEW = -1;
@@ -79,6 +60,14 @@ export function ScaleExperience() {
     // touched the map; it then fades out and leaves (Phase 2d).
     const [hintGone, setHintGone] = useState(false);
     const dismissHint = useCallback(() => setHintGone(true), []);
+    // The window model (Phase 4): a dolly request for the map, and whether the current
+    // window arrived by a lateral move. `openRef` mirrors `selected` for the handlers.
+    const [dolly, setDolly] = useState<Dolly | null>(null);
+    const [lateral, setLateral] = useState(false);
+    const openRef = useRef<string | null>(null);
+    useEffect(() => {
+        openRef.current = selected;
+    }, [selected]);
 
     // Signature sequence (Phase 3 of docs/MOTION-PLAN-2026-10-12.md): the overview's
     // accent word is drawn as points on the canvas, which then fly out to become the
@@ -124,6 +113,8 @@ export function ScaleExperience() {
     // names nothing openable, which the caller treats as "close".
     const showFromHash = useCallback((hash: string) => {
         if (!hash || !hasWindow(hash)) return false;
+        // Back/forward between two windows crossfades, like a lateral move.
+        setLateral(openRef.current !== null);
         setSelected(hash);
         setOrigin(null); // no click to grow from — a deep link just fades in
         const i = HREF_SCENE[hash];
@@ -147,8 +138,13 @@ export function ScaleExperience() {
     // Open the window; keep the rail/panel context in sync with what was opened.
     // `o` is the click's screen position — the window's circle-reveal grows from it.
     const onSelect = useCallback((href: string, o?: { x: number; y: number }) => {
+        // From inside an open window this is a lateral move: crossfade, no circle,
+        // the camera pans behind. A pointer open dollies; a keyboard open does not.
+        const lateralMove = openRef.current !== null;
+        setLateral(lateralMove);
+        if (o || lateralMove) setDolly({ href, key: Date.now() });
         setSelected(href);
-        setOrigin(o ?? null);
+        setOrigin(lateralMove ? null : o ?? null);
         const i = HREF_SCENE[href];
         if (typeof i === 'number') setActive(i);
         // Mark the entry as ours so closing knows whether going back is safe.
@@ -308,6 +304,8 @@ export function ScaleExperience() {
                             onAreaChange={onAreaChange}
                             releasePinned={releasePinned}
                             signature={{ getWordRect, onStart: onSignatureStart, onEnd: onSignatureEnd }}
+                            windowHref={selected}
+                            dolly={dolly}
                         />}
                     </div>
 
@@ -367,6 +365,8 @@ export function ScaleExperience() {
                         origin={origin}
                         onClose={onClose}
                         onSelect={onSelect}
+                        color={GROUP[HREF_SCENE[selected] ?? 0]}
+                        lateral={lateral}
                     />
                 )}
             </AnimatePresence>

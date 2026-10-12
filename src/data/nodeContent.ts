@@ -32,6 +32,10 @@ export interface NodeContent {
     podcast?: ContentPodcast;
     note?: string;
     actions?: ContentAction[];
+    // Hand-curated connections to other windows (hrefs), shown as "Connected" at the
+    // end of the window. A connection is a claim, so it is written, never inferred;
+    // without it the window lists the other windows at its own scale instead.
+    related?: string[];
 }
 
 export const IN_PREP =
@@ -228,3 +232,24 @@ export const contentOrder = [
     '#it-product', '#it-key-roles', '#seamless',
     '#thinking', '#podcast', '#talks',
 ];
+
+// href → which scale/scene it belongs to (rail + panel context, the window's colour,
+// and its "More at this scale" list). Index matches `scenes` and the map's GROUP.
+export const HREF_SCENE: Record<string, number> = {
+    '#about': 0,
+    '#compass': 0,
+    '#contact': 0,
+    '#touchpoint': 1,
+    '#nespresso': 1,
+    '#digital-agent': 1,
+    '#team': 2,
+    '#synthetic-users': 2,
+    '#design-maturity': 2,
+    '#organisation': 3,
+    '#it-product': 3,
+    '#it-key-roles': 3,
+    '#seamless': 3,
+    '#thinking': 4,
+    '#podcast': 4,
+    '#talks': 4,
+};

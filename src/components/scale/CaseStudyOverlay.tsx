@@ -11,6 +11,7 @@ import { Compass } from './Compass';
 import { PodcastEmbed } from './PodcastEmbed';
 import { Iceberg, RoleTrack, Chain, Matrix, Swing } from './instruments';
 import { Figure, Lightbox } from './CaseFigure';
+import { Connected } from './WindowLinks';
 
 /**
  * CaseStudyOverlay — THE single content window for every node click. Whether it
@@ -39,11 +40,17 @@ export function CaseStudyOverlay({
     origin,
     onClose,
     onSelect,
+    color = '#003ED7',
+    lateral = false,
 }: {
     href: string;
     origin?: { x: number; y: number } | null;
     onClose: () => void;
     onSelect: (href: string, origin?: { x: number; y: number }) => void;
+    /** The scale's colour: header dot and the opening wash (model B). */
+    color?: string;
+    /** Arrived from another window: crossfade in, no circle. */
+    lateral?: boolean;
 }) {
     const study = caseStudies[href];
     const node = nodeContent[href];
@@ -69,9 +76,12 @@ export function CaseStudyOverlay({
     // browser's own interpolation. Cleared afterwards so nothing clips on
     // scroll/resize. (html.reduce-motion collapses the transition globally.)
     const vpRef = useRef<HTMLDivElement>(null);
+    // Model B: a pointer-opened window is first the bead's own colour, which then
+    // dissolves into the glass, so it reads as the node opened up.
+    const wash = Boolean(origin) && !reduceMotion && !lateral;
     useEffect(() => {
         const el = vpRef.current;
-        if (!el || reduceMotion) return;
+        if (!el || reduceMotion || lateral) return;
         el.style.clipPath = `circle(14px at ${ox}px ${oy}px)`;
         el.style.transition = 'clip-path var(--dur-window) var(--ease-out-expo)';
         const raf = requestAnimationFrame(() =>
@@ -87,7 +97,7 @@ export function CaseStudyOverlay({
             cancelAnimationFrame(raf);
             clearTimeout(t);
         };
-    }, [ox, oy, coverR, reduceMotion]);
+    }, [ox, oy, coverR, reduceMotion, lateral]);
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
@@ -124,6 +134,7 @@ export function CaseStudyOverlay({
                 transition={{ duration: 0.8, ease: EXPO }}
             />
 
+
             {/* The scroll viewport. Block flow + mx-auto centres the surface
                 horizontally while keeping it top-aligned, so the sticky header is
                 always the first thing reachable at the top (no centred overflow
@@ -132,7 +143,7 @@ export function CaseStudyOverlay({
             <m.div
                 ref={vpRef}
                 className="absolute inset-0 overflow-y-auto no-scrollbar px-4 sm:px-6 pb-6 sm:pb-10"
-                initial={{ opacity: reduceMotion ? 0 : 1 }}
+                initial={{ opacity: reduceMotion || lateral ? 0 : 1 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, y: 16, transition: { duration: 0.5, ease: 'easeOut' } }}
                 transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -142,6 +153,16 @@ export function CaseStudyOverlay({
                     if (e.target === e.currentTarget) onClose();
                 }}
             >
+                {wash && (
+                    <m.div
+                        aria-hidden="true"
+                        className="absolute inset-0 z-20 pointer-events-none"
+                        style={{ background: `color-mix(in srgb, ${color} 72%, var(--color-surface))` }}
+                        initial={{ opacity: 1 }}
+                        animate={{ opacity: 0 }}
+                        transition={{ delay: 0.25, duration: 0.6, ease: EXPO }}
+                    />
+                )}
                 <article
                     className={`relative w-full ${study ? 'max-w-[880px]' : 'max-w-[720px]'} mx-auto mt-6 sm:mt-10 rounded-3xl border border-ink/10`}
                     style={{
@@ -160,7 +181,10 @@ export function CaseStudyOverlay({
                             WebkitBackdropFilter: 'blur(14px)',
                         }}
                     >
-                        <span className="label-mono truncate">{kicker}</span>
+                        <span className="flex items-center gap-2.5 min-w-0">
+                            <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: color }} aria-hidden="true" />
+                            <span className="label-mono truncate">{kicker}</span>
+                        </span>
                         <button
                             onClick={onClose}
                             aria-label={study ? 'Close case study' : `Close: ${title}`}
@@ -379,6 +403,10 @@ export function CaseStudyOverlay({
                                 )}
                             </>
                         )}
+
+                        <m.div variants={block}>
+                            <Connected href={href} onSelect={onSelect} />
+                        </m.div>
                     </m.div>
                 </article>
             </m.div>

@@ -25,6 +25,7 @@ export function ActionPill({
     external,
     primary,
     row,
+    dot,
     onSelect,
 }: {
     label: string;
@@ -33,6 +34,8 @@ export function ActionPill({
     external?: boolean;
     primary?: boolean;
     row?: boolean;
+    /** Row variant only: a leading colour dot naming the scale the target lives at. */
+    dot?: string;
     onSelect?: (href: string, origin?: { x: number; y: number }) => void;
 }) {
     const focus =
@@ -62,6 +65,7 @@ export function ActionPill({
 
     const body = row ? (
         <>
+            {dot && <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: dot }} aria-hidden="true" />}
             <span className="flex-1 text-ink transition-colors duration-300 ease-out group-hover:text-accent">
                 {label}
             </span>

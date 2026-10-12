@@ -7,6 +7,7 @@ import { buildSystemMap, type SystemMapData, type MapNode } from '@/lib/systemMa
 import { paintNode, paintLink, paintHitArea, PAR_AMP, K_PERSP } from '@/lib/mapPaint';
 import { runSignature, createSigState, type SigState, type SignatureProps } from '@/lib/mapSignature';
 import { useMapMotion, FLY_MS } from '@/lib/mapMotion';
+import { useWindowCamera, type Dolly } from '@/lib/mapWindow';
 
 export interface FlyTo { index: number; key: number }
 export type { SignatureProps };
@@ -26,6 +27,8 @@ export function SystemMap({
     onAreaChange,
     releasePinned = 0,
     signature,
+    windowHref = null,
+    dolly = null,
 }: {
     flyTo: FlyTo | null;
     reduced: boolean;
@@ -35,6 +38,9 @@ export function SystemMap({
     releasePinned?: number;
     /** Wire-up for the first-visit signature sequence; omit to disable it. */
     signature?: SignatureProps;
+    /** The open window and its dolly request (Phase 4). */
+    windowHref?: string | null;
+    dolly?: Dolly | null;
 }) {
     const wrapRef = useRef<HTMLDivElement>(null);
     const fgRef = useRef<any>(null);
@@ -82,12 +88,9 @@ export function SystemMap({
     const [sigActive, setSigActive] = useState(false);
 
     useEffect(() => {
-        // Decide up front whether the signature will run, so the graph is hidden from
-        // its very first frame rather than appearing, vanishing and rebuilding.
-        // It plays on every full page load (a reload is a fresh arrival); what it must
-        // never do is replay on in-page returns to the overview, which it cannot, since
-        // this effect runs once per mount. The old once-per-session gate made reviewers
-        // think it was broken after one reload (Dani, 2026-10-12).
+        // Decide up front whether the signature runs, so the graph is hidden from its
+        // first frame. It plays on every full load and never on in-page returns (this
+        // runs once per mount); a once-per-session gate read as "broken" on reload.
         const willRun =
             !!signature &&
             !reduced &&
@@ -118,33 +121,34 @@ export function SystemMap({
         return () => ro.disconnect();
     }, []);
 
-    // One camera control. zoomToFit frames either the whole system (index 0 =
-    // pixel / overview = the tagline) or a single cluster's nodes. It auto-centres
-    // and auto-zooms, which holds reliably where centerAt + zoom together do not.
-    const flyToView = useCallback(
-        (index: number, ms: number) => {
+    // One camera control: zoomToFit (centerAt + zoom together snap back). A fit owns
+    // the camera for its duration + grace so area-detection doesn't fight it.
+    const fitTo = useCallback(
+        (ms: number, padding: number, filter?: (n: any) => boolean) => {
             const g = fgRef.current;
             if (!g || !data) return;
-            // A fly-to owns the camera for its duration (+ grace) so area-detection
-            // doesn't fight it. The instant initial placement gets a grace window too.
             flyingUntil.current = performance.now() + Math.max(ms, 0) + 450;
             userZoomed.current = false; // a programmatic fly owns the area, not detection
-            if (index < 0) {
-                g.zoomToFit(ms, 110); // the whole system (overview)
-            } else {
-                g.zoomToFit(ms, 110, (n: any) => n.cluster === index);
-            }
+            if (filter) g.zoomToFit(ms, padding, filter);
+            else g.zoomToFit(ms, padding);
         },
         [data]
     );
+    const flyToView = useCallback(
+        (index: number, ms: number) =>
+            index < 0 ? fitTo(ms, 110) : fitTo(ms, 110, (n: any) => n.cluster === index),
+        [fitTo]
+    );
 
-    // forceCollide keeps expanding the node disc for up to `cooldownTime` after the
-    // initial zoomToFit calls above run, so the padding they asked for gets silently
-    // eaten by physics still in motion (bbox grows after the camera already fit to
-    // the smaller, pre-expansion bbox). Re-running the same fit once the engine
-    // actually reports settled corrects the final framing without a guessed delay.
-    // Guarded to fire once, and only while still on the overview — a user who has
-    // already focused a cluster by the time this fires should not get yanked back.
+    // Opening a window dollies toward its node; closing settles on the cluster (Phase 4).
+    useWindowCamera({
+        data, windowHref, dolly, reduced, fitTo, setFocused,
+        setAnchor: motion.setAnchor, neighboursOf: motion.neighboursOf,
+    });
+
+    // forceCollide keeps expanding the disc after the initial fits, eating their padding;
+    // re-fit once the engine reports settled. Once only, and only while still on the
+    // overview, so a visitor who has already focused a cluster is not yanked back.
     const settledOnce = useRef(false);
     const onEngineStop = useCallback(() => {
         if (settledOnce.current || focused !== null) return;
@@ -305,11 +309,8 @@ export function SystemMap({
         if (wrapRef.current) wrapRef.current.style.cursor = '';
     }, []);
 
-    // Frame a cluster and hold it in focus. Always flies, so the click is never silent
-    // even when the camera is already roughly on the cluster. Also reports the change
-    // up to `onAreaChange` — without this the map's own fade state disagreed with what
-    // the rail highlighted and the left panel described, which is a status-visibility
-    // bug worse than the duplicate windows this whole rework replaced.
+    // Frame a cluster and hold it in focus. Always flies, so a click is never silent,
+    // and reports up via `onAreaChange` so the map's fade, the rail and the panel agree.
     const focusCluster = useCallback(
         (i: number) => {
             setFocused(i);
@@ -377,17 +378,14 @@ export function SystemMap({
         onAreaChange(bi);
     }, [data, size, onAreaChange, reduced, overallRadius]);
 
-    // Two behaviours, and the difference is learnable in one sentence: a dot that owns
-    // an href opens it, everything else focuses its cluster. Previously every satellite
-    // and the empty space around them fell back to the cluster's window, so ~95% of a
-    // cluster's clickable surface opened the same duplicate prose.
-    // The click's screen position seeds the window's circle-reveal.
+    // Two behaviours, learnable in one sentence: a dot that owns an href opens it,
+    // everything else focuses its cluster. The click position seeds the reveal; focus
+    // on the node's cluster is set by the dolly (useWindowCamera).
     const onNodeClick = useCallback(
         (node: any, event?: MouseEvent) => {
             const n = node as MapNode;
             if (n.href && n.href !== '#') {
                 addRipple(n); // the window's circle reveal grows from this ring
-                setFocused(null);
                 onSelect(n.href, event ? { x: event.clientX, y: event.clientY } : undefined);
                 return;
             }

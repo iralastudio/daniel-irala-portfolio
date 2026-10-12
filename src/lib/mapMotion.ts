@@ -117,16 +117,31 @@ export function useMapMotion(data: SystemMapData | null, focused: number | null,
         [reduced]
     );
 
+    // The node a window was opened from stays lifted while the window is open (Phase
+    // 4), on its own key so hovering elsewhere cannot drop it.
+    const anchored = useRef<string | null>(null);
+    const setAnchor = useCallback(
+        (id: string | null) => {
+            if (id === anchored.current) return;
+            if (anchored.current) tw.to(`a:${anchored.current}`, 0, dur(HOVER_OUT));
+            if (id) tw.to(`a:${id}`, 1, dur(FOCUS));
+            anchored.current = id;
+            setBusy(true);
+        },
+        [tw, dur]
+    );
+    const neighboursOf = useCallback((id: string) => adj.get(id) ?? new Set<string>(), [adj]);
+
     /** onRenderFramePre: advance the clock and collect the nodes currently lifted. */
     const framePre = useCallback(() => {
         tw.tick();
-        const next: Live[] = [];
-        for (const k of tw.keys('h:')) {
+        const byId = new Map<string, number>();
+        for (const k of [...tw.keys('h:'), ...tw.keys('a:')]) {
             const s = tw.value(k);
             const id = k.slice(2);
-            if (s > 0.001) next.push({ id, color: colorOf.get(id) ?? '#2B2A29', s });
+            if (s > 0.001) byId.set(id, Math.max(byId.get(id) ?? 0, s));
         }
-        live.current = next;
+        live.current = [...byId].map(([id, s]) => ({ id, color: colorOf.get(id) ?? '#2B2A29', s }));
     }, [tw, colorOf]);
 
     /** onRenderFramePost: draw ripples (graph space), then rest when nothing moves. */
@@ -174,5 +189,5 @@ export function useMapMotion(data: SystemMapData | null, focused: number | null,
         return best;
     }, []);
 
-    return { busy, onHover, addRipple, framePre, framePost, dimOf, inOf, liftOf, linkLift };
+    return { busy, onHover, addRipple, setAnchor, neighboursOf, framePre, framePost, dimOf, inOf, liftOf, linkLift };
 }
