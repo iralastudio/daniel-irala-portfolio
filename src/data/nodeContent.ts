@@ -139,7 +139,7 @@ export const nodeContent: Record<string, NodeContent> = {
         ],
         paragraphs: [
             'Research into how Nestlé employees discover, evaluate, and adopt IT products and services. It surfaced significant friction in the end-to-end experience of finding and onboarding enterprise tools. Synthesis produced four employee personas and twelve documented pain points.',
-            'A three-session co-design workshop series led the core team to a shared future-state vision. Role: Lead Design Researcher & Service Designer, with Sun (graduate designer) and Sandra (Product Owner).',
+            'A three-session co-design workshop series led the core team to a shared future-state vision. Role: Lead Design Researcher & Service Designer.',
         ],
     },
     '#it-key-roles': {
@@ -167,7 +167,7 @@ export const nodeContent: Record<string, NodeContent> = {
             { value: 'Nestlé IT', label: 'Client' },
         ],
         paragraphs: [
-            'A research and service-design engagement on how employees across the organisation experience meeting and collaboration tools. It was the first time the company examined this experience at this depth. I led research planning and execution, as-is journey mapping, and the envisioning workshops, working with Sun (graduate designer) and aligned with Sandra (Product Owner).',
+            'A research and service-design engagement on how employees across the organisation experience meeting and collaboration tools. It was the first time the company examined this experience at this depth. I led research planning and execution, as-is journey mapping, and the envisioning workshops.',
             'Deliverables included a multi-persona research framework, as-is and future-state journey maps, a Digital Employee Experience (DEX) Framework, and a practical Outlook room-tagging system that was subsequently implemented.',
         ],
     },

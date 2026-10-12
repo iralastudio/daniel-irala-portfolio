@@ -9,42 +9,32 @@ force-directed graph "system map"**: Daniel at the centre, four scales orbiting 
 clusters (Touchpoint / Team / Organisation / Beyond). Free zoom/pan; clicking a node or
 cluster opens content; a frosted-glass left panel shows copy for wherever you're looking.
 
-- **Framework**: Next.js 16.1.4 (App Router), React 19.2.3, TypeScript
-- **Styling**: Tailwind CSS v4 (tokens in `globals.css` via `@theme`)
-- **Animation**: Framer Motion 12 — LazyMotion strict is on: **always import `m`, never `motion`**
-- **Graph**: `react-force-graph-2d` 1.29 (canvas) + `d3-force`
-- **Deploy**: Vercel
-
-## Development Commands
-
-- `npm run dev` / `npm run build` / `npm run start` / `npm run lint`
-- Type-check: `npx tsc --noEmit`
+- **Animation**: LazyMotion strict is on: **always import `m`, never `motion`** (Framer Motion 12)
 
 ## Architecture (live surface)
 
-Everything the visitor sees lives in `src/components/scale/` + `src/data/`:
-
-- `ScaleExperience.tsx` — orchestrator. Desktop: full-bleed map + frosted left panel +
-  right rail. Phones (<768px) or reduce-motion: **stacked mode** (snap-scroll sections +
-  `MobileNav` bottom bar; the map becomes a muted backdrop). `active === -1` = overview.
-  Also owns the URL contract (below).
+- `ScaleExperience.tsx` — orchestrator. Phones (<768px) or reduce-motion: **stacked mode**
+  (snap-scroll sections + `MobileNav` bottom bar; the map becomes a muted backdrop).
+  `active === -1` = overview. Also owns the URL contract (below).
 - `SystemMap.tsx` — the canvas graph. `aria-hidden` (pointer-only by design; keyboard
   users reach everything through the rail + panel links instead).
-- `SectionPanel.tsx` — the readable copy per area; the panel column scrolls
-  (`overflow-y-auto`) because tall scenes overflow short viewports.
-  `ScaleRail.tsx` (desktop right edge) and `MobileNav.tsx` (thumb bar) are the two nav
-  patterns.
 - `CaseStudyOverlay.tsx` — THE single content window for every node click: one
   frosted-glass article surface for both full case studies (`caseStudies.ts`) and
   compact node content (`nodeContent.ts`), with lightbox. Opens via a clip-path
   **circle reveal from the clicked node's screen position** (`origin` prop);
   reduced motion falls back to a fade. Do not reintroduce a second window style.
+  Loaded lazily via `next/dynamic` (prefetched on idle) and resolves its own content
+  from `href`, so the case-study text stays out of the initial bundle. The visual
+  instruments live in `instruments.tsx`; figures + lightbox in `CaseFigure.tsx`.
+- `SystemMapBackdrop.tsx` — stacked mode's backdrop. Stacked mode never loads the graph engine.
 - `DisplayMenu.tsx` — top-right glyph opening the accessibility controls (contrast,
   reduce motion, dyslexia type, text size). This is the **only** way to reach
   `AccessibilityContext` from the UI; without it, only the OS motion preference applies.
   Dismissal contract matches the window: Esc or outside click, focus returns to trigger.
 - `CrawlableContent.tsx` — server-rendered sr-only mirror of all window content for
-  SEO/screen readers. Keep it in sync when content changes.
+  SEO/screen readers. Mirrors the full case study where one exists, else the
+  nodeContent entry. It fails the build if a case study has no nodeContent entry
+  (ScaleExperience decides "openable" from nodeContent alone).
 - `src/lib/systemMap.ts` — graph data builder (seeded, circular wedge layout).
 - `src/data/scenes.ts` — panel copy per scale; `nodeContent.ts` — window content;
   `caseStudies.ts` — full case studies. Block model:
@@ -108,38 +98,14 @@ useless for a portfolio. `ScaleExperience` owns this and it is easy to break:
    the tighter value automatically. This is a Swiss/editorial surface — nothing should
    read as a pill-shaped blob. New `rounded-full` on a control is almost always wrong
    (dots and status ticks excepted).
-10. **Interaction standards** (from `docs/INTERACTION-AUDIT-2026-07-11.md` — keep every
-    surface on the same patterns):
-    - **Action controls**: always `ActionPill` (`src/components/scale/ActionPill.tsx`) —
-      never restyle one locally. Three variants: `primary` (solid accent,
-      `px-4 py-2`, the one real CTA in a panel), `row` (full-width index row —
-      label · meta · arrow — for project lists whose labels would wrap inside a box),
-      and default (compact bordered, `px-3 py-1.5`). Hover = colour + arrow slide, 300ms.
-    - **Touch targets**: shrinking a control must not shrink its target. Add `.tap`,
-      which applies `min-height: 44px` under `@media (pointer: coarse)` only.
-    - **Focus**: `focus-visible:ring-2 ring-accent ring-offset-2 ring-offset-background`
-      (white ring on dark layers). The global CSS outline is only a fallback.
-    - **Hover/state timing**: 300ms (`duration-300`); entrances stay 0.6–0.7s EXPO
-      (`cubic-bezier(0.16,1,0.3,1)`). No bare `transition-colors` (that's 150ms).
-    - **Borders**: two alphas only — `border-ink/10` for surfaces/cards/dividers,
-      `border-ink/15` for interactive controls.
-    - **Compact-window rhythm**: first content block `mt-8` (same as case studies).
-    - **Circle-reveal origin**: pass click positions through `clickOrigin()`
-      (`src/lib/clickOrigin.ts`) so keyboard activation falls back to the upper-centre
-      bloom instead of the screen corner.
-    - **Close buttons**: 44px (`w-11 h-11`), 14px icon, stroke 1.7, `duration-300`.
-    - **Window exit is intentionally asymmetric**: opens as a circle reveal from the node,
-      closes as a fade + small downward drift (a reverse reveal would fight the scrolled
-      position). Do not "fix" this.
-    - **Stacked mode** (phones, touch-only tablets, reduce-motion): `MobileNav` renders at
-      every width (it is the only nav there — never hide it behind a breakpoint), a
-      scroll-spy keeps it in sync, and the overview scene leads the section stack. Its
-      five labels cannot fit 375px at a legible size, so the bar scrolls horizontally
-      with edge fades and auto-scrolls the active item into view — never shrink the
-      type to make them fit.
+10. **Interaction standards**: see `src/components/scale/CLAUDE.md` (loads when editing that folder).
 11. **Cascade gotcha**: `.label-mono` lives inside `@layer components` so a utility
     (e.g. `text-accent` on the active nav item) still wins. Unlayered CSS beats every
     layered Tailwind utility — moving it out will silently re-break active states.
+12. **File placement**: never leave working files, scratch output, or one-off tests
+    in the repo root. Source goes in `src/`, docs in `docs/`, config in `config/`,
+    scripts in `scripts/`. Temporary files belong in the session scratchpad, not
+    the repo.
 
 ## Verifying changes
 

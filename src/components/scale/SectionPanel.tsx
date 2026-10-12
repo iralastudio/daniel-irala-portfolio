@@ -1,7 +1,8 @@
 'use client';
 
-import { m, type Variants } from 'framer-motion';
+import { m } from 'framer-motion';
 import type { Scene } from '@/data/scenes';
+import { stagger, rise } from '@/lib/motion';
 import { ActionPill } from './ActionPill';
 
 /**
@@ -10,27 +11,23 @@ import { ActionPill } from './ActionPill';
  * the area changes. Its CTAs open the matching window (the map stays visible).
  */
 
-const EXPO = [0.16, 1, 0.3, 1] as const;
-
-const container: Variants = {
-    hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.055, delayChildren: 0.04 } },
-    exit: { opacity: 0, transition: { duration: 0.25, ease: 'easeOut' } },
-};
-const item: Variants = {
-    hidden: { opacity: 0, y: 18 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EXPO } },
-    exit: { opacity: 0, y: -10, transition: { duration: 0.2, ease: 'easeOut' } },
-};
+const container = stagger(0.055, 0.04, { opacity: 0, transition: { duration: 0.25, ease: 'easeOut' } });
+const item = rise(18, 0.6, { opacity: 0, y: -10, transition: { duration: 0.2, ease: 'easeOut' } });
 
 export function SectionPanel({
     scene,
     isH1,
     onSelect,
+    accentRef,
+    hideAccent = false,
 }: {
     scene: Scene;
     isH1: boolean;
     onSelect: (href: string, origin?: { x: number; y: number }) => void;
+    /** The accent word's element — the signature sequence samples its glyphs. */
+    accentRef?: React.Ref<HTMLSpanElement>;
+    /** While the signature runs, the canvas draws the word; the DOM word stays invisible. */
+    hideAccent?: boolean;
 }) {
     // Always h2. The document's single h1 is the one in CrawlableContent, which names
     // the person and the role — the strongest heading for search and answer engines,
@@ -71,7 +68,14 @@ export function SectionPanel({
                 style={{ fontSize: 'var(--step-4)' }}
             >
                 {scene.headline.lead}
-                <span className="italic text-accent">{scene.headline.accent}</span>
+                <span
+                    ref={accentRef}
+                    className="italic text-accent"
+                    // Hides instantly (the canvas takes over the same pixels), fades back in.
+                    style={{ opacity: hideAccent ? 0 : 1, transition: hideAccent ? 'none' : 'opacity 320ms ease-out' }}
+                >
+                    {scene.headline.accent}
+                </span>
             </Heading>
 
             {scene.headline.sub && (

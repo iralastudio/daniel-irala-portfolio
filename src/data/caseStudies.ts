@@ -680,7 +680,7 @@ export const caseStudies: Record<string, CaseStudy> = {
                     {
                         kind: 'text',
                         text:
-                            'As Lead Design Researcher and Service Designer, I owned the research strategy end to end: synthesising prior studies, running 25 in-depth interviews across 5 global zones, and validating pain points with a 322-response survey, for a 347-participant evidence base leadership could trust. I worked with Sun, a graduate designer, and aligned closely with Sandra, the Product Owner.',
+                            'As Lead Design Researcher and Service Designer, I owned the research strategy end to end: synthesising prior studies, running 25 in-depth interviews across 5 global zones, and validating pain points with a 322-response survey, for a 347-participant evidence base leadership could trust.',
                     },
                     {
                         kind: 'text',

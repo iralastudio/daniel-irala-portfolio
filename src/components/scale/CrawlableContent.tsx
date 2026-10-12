@@ -1,5 +1,6 @@
 import { scenes, overviewScene, type Scene } from '@/data/scenes';
 import { nodeContent, contentOrder } from '@/data/nodeContent';
+import { caseStudies, type CaseBlock, type CaseStudy } from '@/data/caseStudies';
 
 /**
  * CrawlableContent — server-rendered, visually hidden (sr-only) copy of everything the
@@ -15,7 +16,21 @@ import { nodeContent, contentOrder } from '@/data/nodeContent';
  * The scale-level copy comes from scenes.ts deliberately. It used to come from three
  * nodeContent entries that duplicated it; those were removed when hub clicks stopped
  * opening windows, and pointing here at scenes.ts is what keeps the text in the mirror.
+ *
+ * Where a full case study exists, the mirror carries the case study (every section,
+ * and the text inside each instrument) rather than its compact nodeContent summary.
+ * The case studies are the richest content on the site; mirroring only the summary
+ * left them invisible to anything that doesn't click.
  */
+
+// ScaleExperience decides "is this href openable?" from nodeContent alone, so it
+// never has to import the case-study text. That only holds if every case study
+// keeps a nodeContent entry. This file renders at build time, so the build fails
+// here instead of a case study silently becoming unopenable.
+const orphaned = Object.keys(caseStudies).filter((h) => !nodeContent[h]);
+if (orphaned.length) {
+    throw new Error(`Case studies without a nodeContent entry (unopenable): ${orphaned.join(', ')}`);
+}
 
 function headlineOf(s: Scene) {
     return `${s.headline.lead}${s.headline.accent}`.replace(/\s+/g, ' ').trim();
@@ -27,7 +42,121 @@ function hrefsOf(s: Scene) {
     return out;
 }
 
+// Plain-text rendering of each block. Instruments carry real claims in their
+// prompts, cells and notes, so they are mirrored as text; galleries are skipped
+// (an sr-only <img> would still download).
+function BlockText({ b }: { b: CaseBlock }) {
+    switch (b.kind) {
+        case 'text':
+            return <p>{b.text}</p>;
+        case 'quote':
+            return <blockquote>{b.text}</blockquote>;
+        case 'gallery':
+            return null;
+        case 'iceberg':
+            return (
+                <div>
+                    <p>{b.model.prompt}</p>
+                    <p>{b.model.above.title}: {b.model.above.note}</p>
+                    <ul>
+                        {b.model.below.map((c) => (
+                            <li key={c.n}>{c.title}: {c.note}</li>
+                        ))}
+                    </ul>
+                    {b.model.outOfScope && <p>Out of scope: {b.model.outOfScope.join('; ')}</p>}
+                </div>
+            );
+        case 'roletrack':
+            return (
+                <div>
+                    <p>{b.model.prompt}</p>
+                    <ul>
+                        {b.model.rows.map((r) => (
+                            <li key={r.role}>
+                                {r.role} ({b.model.stages[r.stageIndex]}): {r.status}
+                                {r.metrics && ` ${r.metrics.map((mt) => `${mt.value} ${mt.label}`).join(', ')}.`}
+                                {r.pending && ` ${r.pending}.`}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            );
+        case 'chain':
+            return (
+                <div>
+                    <p>{b.model.prompt}</p>
+                    <ol>
+                        {b.model.steps.map((st) => (
+                            <li key={st.role}>{st.role}: {st.hands}</li>
+                        ))}
+                    </ol>
+                    {b.model.note && <p>{b.model.note}</p>}
+                </div>
+            );
+        case 'matrix':
+            return (
+                <div>
+                    <p>{b.model.prompt}</p>
+                    {b.model.rows.map((r) => (
+                        <dl key={r.n}>
+                            <dt>{r.gap}</dt>
+                            {r.cells.map((cell, i) => (
+                                <dd key={i}>{b.model.columns[i]}: {cell}</dd>
+                            ))}
+                        </dl>
+                    ))}
+                    {b.model.note && <p>{b.model.note}</p>}
+                </div>
+            );
+        case 'swing':
+            return (
+                <div>
+                    <p>{b.model.prompt}</p>
+                    <ul>
+                        {b.model.pairs.map((pr) => (
+                            <li key={pr.label}>
+                                {pr.label}: {pr.from.value} before, {pr.to.value} after
+                                ({pr.better} is better).{pr.note && ` ${pr.note}`}
+                            </li>
+                        ))}
+                    </ul>
+                    {b.model.note && <p>{b.model.note}</p>}
+                </div>
+            );
+    }
+}
+
+function StudyContent({ study, heading }: { study: CaseStudy; heading: 'h2' | 'h3' }) {
+    const H = heading;
+    const Sub = heading === 'h2' ? 'h3' : 'h4';
+    return (
+        <article aria-label={study.title}>
+            <H>{study.title}</H>
+            <p>{study.kicker}</p>
+            {study.positioning && <p>{study.positioning}</p>}
+            <p>{study.summary}</p>
+            <ul>
+                {study.facts.map((f) => (
+                    <li key={f.label}>
+                        {f.value}: {f.label}
+                    </li>
+                ))}
+            </ul>
+            {study.sections.map((sec) => (
+                <section key={sec.n} aria-label={sec.heading}>
+                    <Sub>{sec.heading}</Sub>
+                    {sec.blocks.map((b, i) => (
+                        <BlockText key={i} b={b} />
+                    ))}
+                </section>
+            ))}
+        </article>
+    );
+}
+
 function WindowContent({ id, heading }: { id: string; heading: 'h2' | 'h3' }) {
+    const study = caseStudies[id];
+    if (study) return <StudyContent study={study} heading={heading} />;
     const c = nodeContent[id];
     if (!c) return null;
     const H = heading;

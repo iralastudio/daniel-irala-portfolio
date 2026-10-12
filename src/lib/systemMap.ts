@@ -17,6 +17,9 @@ export interface MapNode {
     href?: string;        // anchor key into nodeContent → opens a window
     tx: number;           // target position in the disc (held by forceX/forceY)
     ty: number;
+    // Depth in the field, 0 = far, 1 = near. Drives size, alpha, keyline and
+    // parallax in paint only — never the physics (docs/MOTION-PLAN, Phase 1).
+    z: number;
     // d3-force fills x/y/vx/vy at runtime
     x?: number;
     y?: number;
@@ -30,8 +33,24 @@ export interface SystemMapData {
     clusters: ClusterMeta[];
 }
 
-// Light-legible group colours, one per scale.
-const GROUP = ['#003ED7', '#D9824D', '#C28A00', '#2E8B6F', '#7C5CBF'];
+// Light-legible group colours, one per scale. Exported for the colour field that
+// tints the page toward the active cluster.
+export const GROUP = ['#003ED7', '#D9824D', '#C28A00', '#2E8B6F', '#7C5CBF'];
+
+/** Size, alpha and keyline a node earns from its depth. */
+export const depthScale = (z: number) => 0.6 + 0.6 * z;
+/** Depth as colour: the cluster hue washed toward the field as it recedes. Used by
+ *  the static backdrop; the live map caches the same mix per shade. */
+export const depthPigment = (hex: string, z: number, bg = '#EBEAE8') => {
+    const h = (s: string) => [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)];
+    const A = h(hex);
+    const B = h(bg);
+    const k = (1 - Math.min(1, Math.max(0, z))) * 0.62;
+    return `rgb(${Math.round(A[0] + (B[0] - A[0]) * k)},${Math.round(A[1] + (B[1] - A[1]) * k)},${Math.round(A[2] + (B[2] - A[2]) * k)})`;
+};
+// Colour carries most of the distance now (far = hue washed toward the field), so
+// alpha only needs a gentle fall.
+export const depthAlpha = (z: number, actionable: boolean) => (actionable ? 0.8 + 0.2 * z : 0.45 + 0.4 * z);
 // Balanced outer counts so the four sectors weigh evenly → a round disc.
 const NODE_COUNT = [8, 58, 62, 66, 70];
 const RING = 720; // outer reach of the disc
@@ -134,6 +153,7 @@ export function buildSystemMap(): SystemMapData {
             id: hubId, cluster: i, r: i === 0 ? 19 : 14, kind: 'hub',
             color, label: hubLabel(s), href: hubHref(s),
             tx: hp.x, ty: hp.y, x: hp.x, y: hp.y,
+            z: i === 0 ? 1 : 0.9, // landmarks sit nearest
         });
         idsByCluster[i].push(hubId);
         targets[i].push(hp);
@@ -143,6 +163,9 @@ export function buildSystemMap(): SystemMapData {
             const isProj = n < named.length;
             const id = `${s.id}-n${n}`;
             const p = placeNode(n + 1);
+            // Projects float in the near half; satellites fill the field with more
+            // mass far back (the power curve biases toward 0), so the web recedes.
+            const z = isProj ? r2(0.6 + rand() * 0.3) : r2(Math.pow(rand(), 1.6) * 0.7);
             nodes.push({
                 id, cluster: i,
                 r: isProj ? (entry?.small ? 6 : 10.5) : r2(2.4 + rand() * 3),
@@ -150,6 +173,7 @@ export function buildSystemMap(): SystemMapData {
                 color, label: isProj ? entry?.label : undefined,
                 href: isProj ? entry?.href : undefined,
                 tx: p.x, ty: p.y, x: p.x, y: p.y,
+                z,
             });
             targets[i].push(p);
             const peers = idsByCluster[i];

@@ -1,18 +1,30 @@
 'use client';
 
-import { useState, useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import dynamic from 'next/dynamic';
 import { AnimatePresence } from 'framer-motion';
 import { scenes, overviewScene } from '@/data/scenes';
 import { useAccessibility } from '@/hooks/useAccessibility';
-import { caseStudies } from '@/data/caseStudies';
 import { nodeContent } from '@/data/nodeContent';
 import { SystemMap, type FlyTo } from './SystemMap';
+import { GROUP } from '@/lib/systemMap';
+import { SystemMapBackdrop } from './SystemMapBackdrop';
 import { SectionPanel } from './SectionPanel';
-import { CaseStudyOverlay } from './CaseStudyOverlay';
 import { BrandMark } from './BrandMark';
 import { ScaleRail } from './ScaleRail';
 import { MobileNav } from './MobileNav';
 import { DisplayMenu } from './DisplayMenu';
+
+// The window (and the case-study text it carries) is only needed after the first
+// click, so it stays out of the initial bundle. It is prefetched once the browser
+// is idle, so by the time anyone clicks the chunk is normally already there.
+const loadOverlay = () => import('./CaseStudyOverlay');
+const CaseStudyOverlay = dynamic(() => loadOverlay().then((mod) => mod.CaseStudyOverlay), { ssr: false });
+
+// Every openable href has a nodeContent entry: full case studies keep one too, as
+// their compact summary. CrawlableContent fails the build if that ever stops being
+// true, which is what lets this check skip importing caseStudies.
+const hasWindow = (href: string) => Boolean(nodeContent[href]);
 
 // href → which scale/scene it belongs to (for rail + panel context).
 const HREF_SCENE: Record<string, number> = {
@@ -64,6 +76,24 @@ export function ScaleExperience() {
     const [flyTo, setFlyTo] = useState<FlyTo | null>(null);
     const [releasePinned, setReleasePinned] = useState(0);
 
+    // Signature sequence (Phase 3 of docs/MOTION-PLAN-2026-10-12.md): the overview's
+    // accent word is drawn as points on the canvas, which then fly out to become the
+    // nodes of the system. The DOM word hides while the canvas owns it.
+    const accentRef = useRef<HTMLSpanElement>(null);
+    const [hideAccent, setHideAccent] = useState(false);
+    const getWordRect = useCallback(() => {
+        const el = accentRef.current;
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        const cs = getComputedStyle(el);
+        // Build the canvas font from parts: Firefox returns '' for the `font` shorthand,
+        // which rasterised the word at the canvas default and aborted the sequence.
+        const font = cs.font || `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+        return { rect: r, text: el.textContent ?? '', font, color: cs.color };
+    }, []);
+    const onSignatureStart = useCallback(() => setHideAccent(true), []);
+    const onSignatureEnd = useCallback(() => setHideAccent(false), []);
+
     const mounted = useSyncExternalStore(subscribeNever, () => true, () => false);
     const isMobile = useSyncExternalStore(
         subscribeMobile,
@@ -79,10 +109,13 @@ export function ScaleExperience() {
     // (which is what shows once you've zoomed into that cluster specifically).
     const panelScene = active === OVERVIEW ? overviewScene : scenes[active];
 
+    useEffect(() => {
+        const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1500));
+        idle(() => void loadOverlay());
+    }, []);
+
     // Every content window is addressable. Without this the back button does
     // nothing and a case study can't be sent to anyone — fatal for a portfolio.
-    const hasWindow = (href: string) => Boolean(caseStudies[href] || nodeContent[href]);
-
     // Reflect a URL hash into open-window state. Returns false when the hash
     // names nothing openable, which the caller treats as "close".
     const showFromHash = useCallback((hash: string) => {
@@ -195,8 +228,10 @@ export function ScaleExperience() {
                    is readable, scrollable sections with a thumb-reachable bottom nav. */
                 <>
                     <div className="fixed inset-0 -z-10" aria-hidden="true">
-                        {/* Decorative backdrop only — covered by the sections, never clickable. */}
-                        <SystemMap flyTo={null} reduced onSelect={() => {}} />
+                        {/* Decorative backdrop only — covered by the sections, never clickable.
+                            A static drawing, not the live graph: behind an 82% veil nobody can
+                            see the physics, and phones shouldn't pay for them. */}
+                        <SystemMapBackdrop />
                         <div
                             className="absolute inset-0"
                             style={{ background: 'color-mix(in srgb, var(--color-background) 82%, transparent)' }}
@@ -230,14 +265,44 @@ export function ScaleExperience() {
                 /* Desktop: full-bleed circular map; the copy rides a frosted glass panel
                    so it stays fully readable over the live graph (no hard "square"). */
                 <div className="fixed inset-0 overflow-hidden">
-                    <div className="absolute inset-0">
-                        <SystemMap
+                    {/* Colour field (Phase 1d): the page tints faintly toward the active
+                        cluster's colour, centred on the map, so the field has a "where"
+                        before any node is read. Colour transitions; the mask is static. */}
+                    <div
+                        aria-hidden="true"
+                        className="absolute inset-0 pointer-events-none"
+                        style={{
+                            backgroundColor: active === OVERVIEW ? GROUP[0] : GROUP[active] ?? GROUP[0],
+                            opacity: 0.07,
+                            maskImage: 'radial-gradient(ellipse 55% 60% at 56% 50%, #000 0%, transparent 100%)',
+                            WebkitMaskImage: 'radial-gradient(ellipse 55% 60% at 56% 50%, #000 0%, transparent 100%)',
+                            transition: 'background-color 700ms cubic-bezier(0.16, 1, 0.3, 1)',
+                        }}
+                    />
+                    {/* The window is a near layer in the same field (Phase 4): while one is
+                        open the whole map recedes — one blur and a slight scale on this
+                        container, never per node — and comes forward again on close. */}
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            filter: selected ? 'blur(2.5px)' : 'blur(0px)',
+                            transform: selected ? 'scale(0.965)' : 'scale(1)',
+                            transition: 'filter 1100ms cubic-bezier(0.16, 1, 0.3, 1), transform 1100ms cubic-bezier(0.16, 1, 0.3, 1)',
+                            willChange: selected ? 'filter, transform' : undefined,
+                        }}
+                    >
+                        {/* Gated on `mounted`: during hydration `stacked` is still false on
+                            every device, so an ungated map would start importing the graph
+                            engine on phones too, only to be swapped for the backdrop a frame
+                            later. The canvas draws nothing before mount anyway. */}
+                        {mounted && <SystemMap
                             flyTo={flyTo}
                             reduced={false}
                             onSelect={onSelect}
                             onAreaChange={onAreaChange}
                             releasePinned={releasePinned}
-                        />
+                            signature={{ getWordRect, onStart: onSignatureStart, onEnd: onSignatureEnd }}
+                        />}
                     </div>
 
                     {/* pointer-events-none here + on SectionPanel's own wrapper: the box is
@@ -266,6 +331,8 @@ export function ScaleExperience() {
                                 scene={panelScene}
                                 isH1={active === OVERVIEW}
                                 onSelect={onSelect}
+                                accentRef={active === OVERVIEW ? accentRef : undefined}
+                                hideAccent={active === OVERVIEW && hideAccent}
                             />
                         </div>
                     </div>
@@ -277,11 +344,10 @@ export function ScaleExperience() {
             )}
 
             <AnimatePresence>
-                {selected && (caseStudies[selected] || nodeContent[selected]) && (
+                {selected && hasWindow(selected) && (
                     <CaseStudyOverlay
                         key={selected}
-                        study={caseStudies[selected]}
-                        node={nodeContent[selected]}
+                        href={selected}
                         origin={origin}
                         onClose={onClose}
                         onSelect={onSelect}
