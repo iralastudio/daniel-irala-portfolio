@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { m } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { caseStudies, type CaseFigure } from '@/data/caseStudies';
 import { nodeContent } from '@/data/nodeContent';
 import { useDialogFocus } from '@/hooks/useDialogFocus';
@@ -12,6 +12,7 @@ import { PodcastEmbed } from './PodcastEmbed';
 import { Iceberg, RoleTrack, Chain, Matrix, Swing } from './instruments';
 import { Figure, Lightbox } from './CaseFigure';
 import { Connected } from './WindowLinks';
+import { ScrollRoot, CountUp, ReadingProgress, useSectionSpy } from './ReadingAids';
 
 /**
  * CaseStudyOverlay — THE single content window for every node click. Whether it
@@ -54,7 +55,8 @@ export function CaseStudyOverlay({
 }) {
     const study = caseStudies[href];
     const node = nodeContent[href];
-    const [lightbox, setLightbox] = useState<CaseFigure | null>(null);
+    // The figure and where it sat on screen, so the lightbox can grow from it.
+    const [lightbox, setLightbox] = useState<{ fig: CaseFigure; from: DOMRect | null } | null>(null);
     const dialogRef = useDialogFocus<HTMLDivElement>();
     // Honours both the OS preference and the site's own toggle (see useMotionOK).
     const reduceMotion = !useMotionOK();
@@ -76,6 +78,7 @@ export function CaseStudyOverlay({
     // browser's own interpolation. Cleared afterwards so nothing clips on
     // scroll/resize. (html.reduce-motion collapses the transition globally.)
     const vpRef = useRef<HTMLDivElement>(null);
+    const section = useSectionSpy(vpRef, href);
     // Model B: a pointer-opened window is first the bead's own colour, which then
     // dissolves into the glass, so it reads as the node opened up.
     const wash = Boolean(origin) && !reduceMotion && !lateral;
@@ -84,18 +87,36 @@ export function CaseStudyOverlay({
         if (!el || reduceMotion || lateral) return;
         el.style.clipPath = `circle(14px at ${ox}px ${oy}px)`;
         el.style.transition = 'clip-path var(--dur-window) var(--ease-out-expo)';
-        const raf = requestAnimationFrame(() =>
-            requestAnimationFrame(() => {
-                el.style.clipPath = `circle(${coverR}px at ${ox}px ${oy}px)`;
-            })
-        );
-        const t = setTimeout(() => {
+        // The clip MUST be cleared at the end: a clip-path on this ancestor makes it the
+        // backdrop root, and the article's frosted glass then stops blurring the map.
+        // The clean-up timer starts only once the circle is actually expanding, so a
+        // late frame (slow device, background tab) can never re-apply the circle after
+        // it was cleared, which is what left the glass unfrosted before.
+        let done = false;
+        let raf2 = 0;
+        let t = 0;
+        const finish = () => {
+            if (done) return;
+            done = true;
             el.style.clipPath = 'none';
             el.style.transition = '';
-        }, 1160);
+        };
+        const onEnd = (e: TransitionEvent) => {
+            if (e.target === el && e.propertyName === 'clip-path') finish();
+        };
+        el.addEventListener('transitionend', onEnd);
+        const raf1 = requestAnimationFrame(() => {
+            raf2 = requestAnimationFrame(() => {
+                if (done) return;
+                el.style.clipPath = `circle(${coverR}px at ${ox}px ${oy}px)`;
+                t = window.setTimeout(finish, 1100 + 150); // --dur-window + grace
+            });
+        });
         return () => {
-            cancelAnimationFrame(raf);
+            cancelAnimationFrame(raf1);
+            cancelAnimationFrame(raf2);
             clearTimeout(t);
+            el.removeEventListener('transitionend', onEnd);
         };
     }, [ox, oy, coverR, reduceMotion, lateral]);
 
@@ -163,6 +184,7 @@ export function CaseStudyOverlay({
                         transition={{ delay: 0.25, duration: 0.6, ease: EXPO }}
                     />
                 )}
+                <ScrollRoot.Provider value={vpRef}>
                 <article
                     className={`relative w-full ${study ? 'max-w-[880px]' : 'max-w-[720px]'} mx-auto mt-6 sm:mt-10 rounded-3xl border border-ink/10`}
                     style={{
@@ -183,7 +205,19 @@ export function CaseStudyOverlay({
                     >
                         <span className="flex items-center gap-2.5 min-w-0">
                             <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: color }} aria-hidden="true" />
-                            <span className="label-mono truncate">{kicker}</span>
+                            {/* Becomes the current section once you are reading one (Phase 5g). */}
+                            <AnimatePresence mode="wait" initial={false}>
+                                <m.span
+                                    key={section ?? 'kicker'}
+                                    className="label-mono truncate"
+                                    initial={{ opacity: 0, y: 4 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -4 }}
+                                    transition={{ duration: reduceMotion ? 0 : 0.4, ease: EXPO }}
+                                >
+                                    {section ?? kicker}
+                                </m.span>
+                            </AnimatePresence>
                         </span>
                         <button
                             onClick={onClose}
@@ -194,6 +228,7 @@ export function CaseStudyOverlay({
                                 <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
                             </svg>
                         </button>
+                        <ReadingProgress scrollRef={vpRef} color={color} />
                     </div>
 
                     <m.div
@@ -216,6 +251,7 @@ export function CaseStudyOverlay({
 
                         <m.h2
                             variants={block}
+                            data-spy=""
                             className="font-display font-bold text-ink leading-[1.02] tracking-[-0.02em]"
                             style={{ fontSize: 'clamp(2rem, 4.4vw, 3.25rem)' }}
                         >
@@ -235,7 +271,7 @@ export function CaseStudyOverlay({
                             {study.facts.map((f) => (
                                 <div key={f.label} className="rounded-xl bg-background/70 border border-ink/10 px-4 py-3.5">
                                     <div className="font-display font-bold text-accent" style={{ fontSize: 'var(--step-1)' }}>
-                                        {f.value}
+                                        <CountUp value={f.value} />
                                     </div>
                                     <div className="label-mono mt-1 !text-[10px] !tracking-[0.12em]">{f.label}</div>
                                 </div>
@@ -244,7 +280,7 @@ export function CaseStudyOverlay({
 
                         {/* Sections */}
                         {study.sections.map((sec) => (
-                            <m.section key={sec.n} variants={block} className="mt-14 first:mt-16">
+                            <m.section key={sec.n} variants={block} data-spy={`${sec.n} · ${sec.heading}`} className="mt-14 first:mt-16">
                                 <div className="flex items-baseline gap-3 mb-5">
                                     <span className="font-display font-bold text-accent/40" style={{ fontSize: 'var(--step-1)' }}>
                                         {sec.n}
@@ -297,7 +333,7 @@ export function CaseStudyOverlay({
                                         return (
                                             <div key={i} className="grid gap-5 pt-1">
                                                 {b.items.map((fig) => (
-                                                    <Figure key={fig.src} fig={fig} onOpen={setLightbox} />
+                                                    <Figure key={fig.src} fig={fig} onOpen={(f, from) => setLightbox({ fig: f, from })} />
                                                 ))}
                                             </div>
                                         );
@@ -324,7 +360,7 @@ export function CaseStudyOverlay({
                                         {node.facts.map((f) => (
                                             <div key={f.label} className="rounded-xl bg-background/70 border border-ink/10 px-4 py-3.5">
                                                 <div className="font-display font-bold text-accent" style={{ fontSize: 'var(--step-1)' }}>
-                                                    {f.value}
+                                                    <CountUp value={f.value} />
                                                 </div>
                                                 <div className="label-mono mt-1 !text-[10px] !tracking-[0.12em]">{f.label}</div>
                                             </div>
@@ -409,9 +445,10 @@ export function CaseStudyOverlay({
                         </m.div>
                     </m.div>
                 </article>
+                </ScrollRoot.Provider>
             </m.div>
 
-            {lightbox && <Lightbox fig={lightbox} onClose={() => setLightbox(null)} />}
+            {lightbox && <Lightbox fig={lightbox.fig} from={lightbox.from} onClose={() => setLightbox(null)} />}
         </div>
     );
 }

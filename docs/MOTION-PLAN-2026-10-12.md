@@ -23,7 +23,7 @@ What the research said and what transfers is kept in §6 at the end.
 
 - **Branch:** `feat/zoom-scale`. Commits `c97e5f1` (prototype + Phase 0), `e1456b8`
   (Phase 1 + split), `7ce63b1` (Phase 2); Phase 4 follows.
-- **Done:** Phases 0–4 (Phase 4 as models A + B, without the anchor; see Phase 4).
+- **Done:** Phases 0–5 (Phase 4 as A + B without the anchor; Phase 5 without 5c).
 - **Waiting on Dani:** hand-written `related` lists per window in `nodeContent.ts`.
   Until then every window shows "More at this scale" (same-scale windows, factual).
 - **Where the map code lives:** `SystemMap.tsx` is React wiring only; paint (colour
@@ -33,7 +33,7 @@ What the research said and what transfers is kept in §6 at the end.
   next-step list is `WindowLinks.tsx`; easing and reduced-motion are `src/lib/motion.ts`.
 - **Review flags:** `?slow` stretches the signature 4×. The signature plays on every
   full page load; there is no session gate any more.
-- **Run order:** 5 → 6 → 7 → 8. Model C (docked pane) stays a separate-branch idea.
+- **Run order:** 6 → 7 → 8. Model C (docked pane) stays a separate-branch idea.
 - **File size:** keep every file under 500 lines (global rule); `SystemMap.tsx` is at
   ≈495, so Phase 4 wiring must go into a module, not inline.
 - **Verifying pacing:** a hidden browser pane throttles animation frames to ≈2 per
@@ -338,30 +338,29 @@ Acceptance: `role="dialog" aria-modal` and `useDialogFocus` untouched; backdrop 
 is one element (never per node); Esc from a lateral window goes back one window, not
 to the map; deep link into a window renders the receded map correctly on first paint.
 
-### Phase 5 — Reading surface: images and instruments (medium)
+### Phase 5 — Reading surface: images and instruments — DONE 2026-10-12
 
-Files: `CaseFigure.tsx`, `instruments.tsx`, `CaseStudyOverlay.tsx`, `caseStudies.ts`
-(metadata only).
+Files: `CaseFigure.tsx`, `instruments.tsx`, `CaseStudyOverlay.tsx`, new `ReadingAids.tsx`.
 
-- **5a Figure reveal.** `clip-path: inset(0 0 100% 0) → inset(0)` 1 s `--ease-reveal`,
-  image scale 1.04 → 1, `whileInView` once; caption fades after. Reduced: static.
-- **5b Shared-element lightbox.** `layoutId = fig.src` on `Figure` and `Lightbox`, so
-  the image grows from its place and shrinks back. Focus management unchanged.
-- **5c Journey-map travel.** Optional `travel: true` on `CaseFigure` for the wide
-  Seamless Conferencing journey maps: a pinned 100 svh stage, `useScroll` on the
-  overlay viewport + `useTransform` driving `x`, so the reader moves along the journey.
-  Accent hairline shows position. At most two figures site-wide. Stacked: plain figure.
-- **5d Gentle parallax** on other figures: `y` ±12 px inside the scroll viewport.
-- **5e Instruments.** Iceberg: waterline `scaleX` 0 → 1 (500 ms), below-cards rise with
-  `blur(6px) → 0` staggered 90 ms. Swing: bars grow 0 → `pct` (600 ms), `to` bar 120 ms
-  after `from`. RoleTrack: travelled line grows, current dot scales 0.6 → 1 last.
-  Chain: arrows draw via `stroke-dashoffset`. Matrix, Compass: unchanged.
-- **5f Facts count up.** Only values with a leading number; suffix static; 600 ms EXPO
-  once. `CIO Award`, `M.Des` and every `pending` chip never animate.
-- **5g Reading aids.** 2 px accent progress hairline in the sticky header; kicker
-  crossfades (200 ms) to the current section heading via scroll-spy.
-
-Acceptance: every `Beat` fires once; figures carry correct `w`/`h`; CLS 0.
+- **5a Figure reveal:** a white curtain retracts downward over 1.1 s (`REVEAL`), caption
+  fades after. *Not* a clip-path: a clip-path on the image's container also clips its
+  IntersectionObserver rect (per spec), so lazy images never loaded. Found in testing.
+- **5b Lightbox** grows from the figure's own box (measured FLIP, 0.8 s). `layoutId` is
+  unavailable: the site ships framer's `domAnimation` bundle, without layout features.
+- **5c Journey-map travel: skipped.** No asset qualifies: the Seamless journeys are
+  976 px wide, the IT Product Offering journey is portrait. Needs an export ≥ 1536 px wide.
+- **5d Depth drift:** the whole figure frame drifts ±10 px against the text; the image
+  is never scaled inside its frame, so diagram edges are never cropped.
+- **5e Instruments:** iceberg waterline draws, hidden causes surface out of a blur;
+  Swing bars grow to value; RoleTrack line travels, current dot lands last; Chain
+  arrows draw. Beats slowed to 0.8 s with a 120 ms stagger. Matrix, Compass unchanged.
+- **5f Count-up:** leading number ≥ 3 only, prefix/suffix held, years never, 0.9 s once;
+  screen readers get the final value.
+- **5g Reading aids:** a 2 px progress line in the scale's colour; the header kicker
+  crossfades (0.4 s) to the current section.
+- **Bug fixed on the way:** the reveal's clean-up timer could fire before a late frame
+  re-applied the circle, leaving a clip-path on the window, which stops the glass
+  from frosting. The timer now starts only once the circle is expanding (since `32b3efd`).
 
 ### Phase 6 — Chrome: rail indicator and headline wipe (small)
 
@@ -495,3 +494,6 @@ All 2026-10-12.
 - Phase 4 (A + B) in `mapWindow.ts`, `WindowLinks.tsx`: dolly 1.1 s, colour wash,
   header dot, "More at this scale", lateral crossfade with history. Anchor built and
   removed (always behind the glass). Verified open, lateral, back, close, keyboard.
+- Phase 5: curtain reveal, FLIP lightbox, depth drift, instrument motion, honest
+  count-ups, progress line, section kicker; 5c skipped (no qualifying asset). Pane
+  stopped painting mid-test: reduced-motion verified fully, motion end states partly.

@@ -5,7 +5,7 @@ import { m, type Variants } from 'framer-motion';
 import type {
     IcebergModel, RoleTrackModel, ChainModel, MatrixModel, SwingModel,
 } from '@/data/caseStudies';
-import { rise, useMotionOK } from '@/lib/motion';
+import { EXPO, rise, useMotionOK } from '@/lib/motion';
 
 /**
  * The visual storytelling instruments rendered inside case studies. Every one sits
@@ -30,9 +30,32 @@ import { rise, useMotionOK } from '@/lib/motion';
 // than using the shared `stagger`, which fades the parent too.
 const beatWrap: Variants = {
     hidden: {},
-    show: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } },
+    show: { transition: { staggerChildren: 0.12, delayChildren: 0.08 } },
 };
-const beatItem = rise(14, 0.55);
+const beatItem = rise(14, 0.8);
+
+// Instrument motion (Phase 5e): each move says what the instrument means. All are
+// variant children of a Beat, so they wait for it, and render static without one.
+/** Grows along its axis from its origin (a waterline, a bar, a travelled line). */
+const grow: Variants = {
+    hidden: { scaleX: 0 },
+    show: (delay: number = 0) => ({ scaleX: 1, transition: { duration: 1, ease: EXPO, delay } }),
+};
+/** Rises out of a blur: what was hidden below the surface comes into focus. */
+const surface: Variants = {
+    hidden: { opacity: 0, y: 14, filter: 'blur(6px)' },
+    show: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.9, ease: EXPO } },
+};
+/** Lands last: the marker for where a row actually is. */
+const settle: Variants = {
+    hidden: { opacity: 0, scale: 0.6 },
+    show: { opacity: 1, scale: 1, transition: { duration: 0.6, ease: EXPO, delay: 0.7 } },
+};
+/** A connector drawing itself after the cards it joins. */
+const draw: Variants = {
+    hidden: { pathLength: 0 },
+    show: { pathLength: 1, transition: { duration: 0.8, ease: EXPO, delay: 0.3 } },
+};
 
 function Beat({ children, className = '' }: { children: React.ReactNode; className?: string }) {
     // Both the OS preference and the site toggle: before Phase 0 this read the OS
@@ -91,8 +114,9 @@ function Instrument({ prompt, note, children }: { prompt: string; note?: string;
 export function Iceberg({ model }: { model: IcebergModel }) {
     return (
         <Instrument prompt={model.prompt}>
+            <Beat>
             {/* Above the surface — the visible symptom */}
-            <div className="px-5 sm:px-7 pt-5 pb-8">
+            <BeatItem className="px-5 sm:px-7 pt-5 pb-8">
                 <div className="label-mono mb-4">Above the surface</div>
                 <div className="flex items-center gap-5 sm:gap-7">
                     <svg width="96" height="76" viewBox="0 0 96 76" aria-hidden="true" className="shrink-0">
@@ -113,10 +137,10 @@ export function Iceberg({ model }: { model: IcebergModel }) {
                         </div>
                     </div>
                 </div>
-            </div>
+            </BeatItem>
 
-            {/* Waterline */}
-            <div className="h-px w-full" style={{ background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-accent) 45%, transparent), transparent)' }} />
+            {/* Waterline: draws outward from the middle before anything surfaces */}
+            <m.div variants={grow} className="h-px w-full origin-center" style={{ background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-accent) 45%, transparent), transparent)' }} />
 
             {/* Below the surface — the hidden causes */}
             <div className="relative px-5 sm:px-7 pt-6 pb-6 overflow-hidden">
@@ -134,7 +158,7 @@ export function Iceberg({ model }: { model: IcebergModel }) {
                     <div className="label-mono mb-4">Hidden below the surface</div>
                     <div className="grid sm:grid-cols-2 gap-3">
                         {model.below.map((c) => (
-                            <div key={c.n} className="rounded-xl border border-ink/10 bg-surface/70 p-4">
+                            <m.div key={c.n} variants={surface} className="rounded-xl border border-ink/10 bg-surface/70 p-4">
                                 <div className="flex items-start gap-3">
                                     <span className="shrink-0 grid place-items-center w-7 h-7 rounded-full border border-accent/30 text-accent label-mono !text-[10px] !tracking-[0.08em]">
                                         {c.n}
@@ -148,7 +172,7 @@ export function Iceberg({ model }: { model: IcebergModel }) {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </m.div>
                         ))}
                     </div>
 
@@ -166,6 +190,7 @@ export function Iceberg({ model }: { model: IcebergModel }) {
                     )}
                 </div>
             </div>
+            </Beat>
         </Instrument>
     );
 }
@@ -181,11 +206,11 @@ export function RoleTrack({ model }: { model: RoleTrackModel }) {
     const lastIndex = model.stages.length - 1;
     return (
         <Instrument prompt={model.prompt}>
-            <div className="px-5 sm:px-7 py-6 space-y-6">
+            <Beat className="px-5 sm:px-7 py-6 space-y-6">
                 {model.rows.map((row) => {
                     const pct = lastIndex === 0 ? 0 : (row.stageIndex / lastIndex) * 100;
                     return (
-                        <div key={row.role}>
+                        <BeatItem key={row.role}>
                             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 mb-3">
                                 <div className="font-display font-semibold text-ink" style={{ fontSize: 'var(--step-0)' }}>
                                     {row.role}
@@ -198,17 +223,22 @@ export function RoleTrack({ model }: { model: RoleTrackModel }) {
                             {/* Track: base line, travelled line, one dot per stage */}
                             <div className="relative h-4">
                                 <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-ink/10" />
-                                <div
-                                    className="absolute left-0 top-1/2 -translate-y-1/2 h-px bg-accent/60"
+                                {/* The distance travelled, drawn out to where the row stands */}
+                                <m.div
+                                    variants={grow}
+                                    className="absolute left-0 top-1/2 -translate-y-1/2 h-px bg-accent/60 origin-left"
                                     style={{ width: `${pct}%` }}
                                 />
                                 {model.stages.map((stage, i) => {
                                     const tickPct = lastIndex === 0 ? 0 : (i / lastIndex) * 100;
                                     const isCurrent = i === row.stageIndex;
                                     const isReached = i < row.stageIndex;
+                                    // The current stage's marker lands after the line reaches it.
+                                    const Dot = isCurrent ? m.div : 'div';
                                     return (
-                                        <div
+                                        <Dot
                                             key={stage}
+                                            {...(isCurrent ? { variants: settle } : {})}
                                             aria-hidden="true"
                                             className={
                                                 isCurrent
@@ -243,10 +273,10 @@ export function RoleTrack({ model }: { model: RoleTrackModel }) {
                                     {row.pending}
                                 </div>
                             ) : null}
-                        </div>
+                        </BeatItem>
                     );
                 })}
-            </div>
+            </Beat>
 
             {/* Shared legend — the one axis every row above is plotted against */}
             <div className="px-5 sm:px-7 pb-5 pt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 label-mono !text-[9px] !tracking-[0.08em] text-ink-soft/60 border-t border-ink/10">
@@ -277,7 +307,7 @@ export function Chain({ model }: { model: ChainModel }) {
                         {i > 0 && (
                             <BeatItem className="hidden md:flex items-center justify-center text-accent/50 px-1">
                                 <svg width="22" height="10" viewBox="0 0 22 10" fill="none" aria-hidden="true">
-                                    <path d="M0 5h19M15 1l4 4-4 4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+                                    <m.path variants={draw} d="M0 5h19M15 1l4 4-4 4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                             </BeatItem>
                         )}
@@ -381,10 +411,10 @@ export function Swing({ model }: { model: SwingModel }) {
                             {/* Two tracks, same scale. The eye gets the delta before the digits. */}
                             <div className="mt-3.5 space-y-1.5" aria-hidden="true">
                                 <div className="h-1.5 rounded-full bg-ink/8 overflow-hidden">
-                                    <div className="h-full rounded-full bg-ink/25" style={{ width: `${p.from.pct}%` }} />
+                                    <m.div variants={grow} custom={0.1} className="h-full rounded-full bg-ink/25 origin-left" style={{ width: `${p.from.pct}%` }} />
                                 </div>
                                 <div className="h-1.5 rounded-full bg-ink/8 overflow-hidden">
-                                    <div className="h-full rounded-full bg-accent" style={{ width: `${p.to.pct}%` }} />
+                                    <m.div variants={grow} custom={0.25} className="h-full rounded-full bg-accent origin-left" style={{ width: `${p.to.pct}%` }} />
                                 </div>
                             </div>
 
