@@ -107,14 +107,15 @@ export const caseStudies: Record<string, CaseStudy> = {
     '#digital-agent': {
         href: '#digital-agent',
         kicker: 'Touchpoint · Nestlé IT · 2026',
+        positioning: 'The second of two parallel studies: discovery decided what to build, this decided whether it was ready',
         title: 'Digital Agent · usability testing',
         summary:
-            "Moderated testing of an internal AI agent against a real go or no-go bar, which found that the model underneath it was a design decision, not an implementation detail.",
+            "Moderated testing of an internal AI agent against a go or no-go bar agreed in advance, which turned a launch debate into a launch decision and showed that the model underneath an agent is a design choice.",
         facts: [
-            { value: '12', label: 'Moderated sessions' },
-            { value: '5/9', label: 'Use cases cleared' },
-            { value: '73%', label: 'Go rate, from 33%' },
-            { value: '86%', label: 'Fewer wrong answers' },
+            { value: 'Go / No-Go', label: 'Bar agreed before testing' },
+            { value: 'Conditional', label: 'Pilot launch the evidence shaped' },
+            { value: '3', label: 'Failure types, each with an owner' },
+            { value: '15', label: 'Moderated sessions' },
         ],
         sections: [
             {
@@ -129,7 +130,12 @@ export const caseStudies: Record<string, CaseStudy> = {
                     {
                         kind: 'text',
                         text:
-                            "The answer was a conditional go. Five of the nine tested use cases cleared the bar. The rest came back with a specific list rather than a vague verdict: 39 open content items to fold into the knowledge base, and six integration gaps to close first. A conditional go with a named list of blockers is a more useful result than a yes, because it tells the build team exactly what to do on Monday.",
+                            "The answer was a conditional go, and the conditions were specific. The use cases that cleared the bar went forward into the pilot launch. The rest came back with a named list of blockers, each traced to its cause and handed to the team that could fix it. A conditional go with a list is more useful than a yes. It tells the build team what to do on Monday, and it tells leadership exactly what they're accepting.",
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            "The scores themselves are internal programme data, so they stay inside Nestlé. The method, the reasoning and the decision are what this page is about. I'm happy to walk through the rest in conversation.",
                     },
                 ],
             },
@@ -139,35 +145,24 @@ export const caseStudies: Record<string, CaseStudy> = {
                 blocks: [
                     {
                         kind: 'quote',
-                        text: "Same use cases, same script, same kind of people, different model underneath. The result doubled. The interface was never the whole story.",
+                        text: "Same use cases, same script, same kind of people, different model underneath. The verdict changed. The interface was never the whole story.",
                     },
                     {
-                        kind: 'swing',
+                        kind: 'chain',
                         model: {
-                            prompt: 'One variable changed between rounds. This is what moved.',
-                            pairs: [
-                                {
-                                    label: 'Go rate',
-                                    from: { value: '33%', pct: 33 },
-                                    to: { value: '73%', pct: 73 },
-                                    better: 'higher',
-                                    note: 'Share of tested use cases clearing the readiness bar.',
-                                },
-                                {
-                                    label: 'Confidently wrong sessions',
-                                    from: { value: '7', pct: 100 },
-                                    to: { value: '1', pct: 14 },
-                                    better: 'lower',
-                                    note: 'Sessions where the agent gave a wrong answer without flagging any doubt.',
-                                },
+                            prompt: 'Where the evidence went, and what each step did with it.',
+                            steps: [
+                                { role: 'Research', hands: 'Scores every use case against the bar and names why each failure happened.' },
+                                { role: 'Leadership', hands: 'Turns the scores into a conditional go: what launches now, and what waits.' },
+                                { role: 'Build teams', hands: 'Get a blocker list sorted by cause, so each fix lands with the team that owns it.' },
                             ],
-                            note: 'Same nine use cases, same task script, same participant profile. Only the model underneath the agent was different.',
+                            note: 'A verdict only travels if each link can act on it without going back to ask the researcher what it meant.',
                         },
                     },
                     {
                         kind: 'text',
                         text:
-                            "Between the first and second rounds of testing, the model powering the agent was swapped and nothing else moved. Beyond the two numbers above, ease of use scored a perfect 7 out of 7, and people hit roughly four times as many moments of value per session as they had with the earlier version.",
+                            "Between the two rounds, the model powering the agent was changed and nothing else moved: same nine use cases, same script, same participant profile. Use cases that failed in the first round cleared in the second, and confidently wrong answers went from a pattern to an exception. A controlled comparison like that gives leadership a reason to move, not an opinion to weigh.",
                     },
                     {
                         kind: 'text',
@@ -183,7 +178,7 @@ export const caseStudies: Record<string, CaseStudy> = {
                     {
                         kind: 'text',
                         text:
-                            "Twelve moderated one-to-one sessions with Relationship Managers across three zones, each running real tasks against the nine use cases in scope. Scoring used a Go/No-Go rubric built to weight readiness rather than collect impressions. The rubric is the part that matters. Without a bar agreed before anyone sits down, agent testing collapses into an argument about whether an answer was good enough, and the loudest person in the room wins it.",
+                            "Fifteen moderated one-to-one sessions with Relationship Managers across three zones, each running real tasks against the nine use cases in scope. Scoring used a Go/No-Go rubric built to weight readiness rather than collect impressions. The rubric is the part that matters. Without a bar agreed before anyone sits down, agent testing collapses into an argument about whether an answer was good enough, and the loudest person in the room wins it.",
                     },
                     {
                         kind: 'text',
@@ -245,12 +240,12 @@ export const caseStudies: Record<string, CaseStudy> = {
                     {
                         kind: 'text',
                         text:
-                            "The model underneath an agent is a design decision, not an implementation detail. I suspected that going in and now have a number for it. A go rate that doubles on the same use cases, the same script and the same participants, with only the model changed, means most of what people experience as interface quality was coming from somewhere else entirely.",
+                            "The model underneath an agent is a design decision, not an implementation detail. I suspected that going in. The controlled comparison made it hard to argue with: when the verdict moves that far on the same use cases, script and participants, most of what people experience as interface quality is coming from somewhere else.",
                     },
                     {
                         kind: 'text',
                         text:
-                            "The other lesson is about how you report a failure. Telling leadership the agent is 78% accurate gives them nothing they can act on. Telling them it invents an answer when it cannot reach a system tells them what to fix and what it costs if they do not. Testing an agent is as much about building the vocabulary to describe how it fails as it is about measuring whether it works.",
+                            "The other lesson is about how you report a failure. Telling leadership an accuracy percentage gives them nothing they can act on. Telling them it invents an answer when it cannot reach a system tells them what to fix and what it costs if they do not. Testing an agent is as much about building the vocabulary to describe how it fails as it is about measuring whether it works.",
                     },
                 ],
             },
@@ -570,11 +565,7 @@ export const caseStudies: Record<string, CaseStudy> = {
                     {
                         kind: 'text',
                         text:
-                            "Relationship Managers sit between the markets and global IT, so their real job is to tell one credible story about what a zone needs. They could not. Requirements, market data and roadmap decisions lived in different systems, so shared demand stayed invisible and kept breaking back apart into isolated market requests. Five opportunity areas came out of that work, with nine scored opportunities under them.",
-                    },
-                    {
-                        kind: 'quote',
-                        text: "To know what exists, what we have and what we don't, in order not to reinvent the wheel. A market has already done that analysis.",
+                            "Relationship Managers sit between the markets and global IT, so their real job is to tell one credible story about what a zone needs. They could not, and the most common ask was simply to know whether another market had already solved the problem. Requirements, market data and roadmap decisions lived in different systems, so shared demand stayed invisible and kept breaking back apart into isolated market requests. Five opportunity areas came out of that work, with nine scored opportunities under them.",
                     },
                     {
                         kind: 'text',
@@ -584,11 +575,7 @@ export const caseStudies: Record<string, CaseStudy> = {
                     {
                         kind: 'text',
                         text:
-                            "Architects are a bottleneck by design, which is the polite way of saying work queues behind them while their time goes on late, document-heavy reviews. Of forty validated pain points, around a quarter concentrate on the architecture review process and the forums around it. Half of the forty are gaps rather than faults: the structure exists, but nobody has filled in the reusable content, so every architect rebuilds from scratch.",
-                    },
-                    {
-                        kind: 'quote',
-                        text: "The review takes so much time. If they have to read a two-hundred-page document every time, they are not spending that time on design itself.",
+                            "Architects are a bottleneck by design, which is the polite way of saying work queues behind them while their time goes on reading long documents late in the process instead of on design itself. Of forty validated pain points, around a quarter concentrate on the architecture review process and the forums around it. Half of the forty are gaps rather than faults: the structure exists, but nobody has filled in the reusable content, so every architect rebuilds from scratch.",
                     },
                     {
                         kind: 'text',

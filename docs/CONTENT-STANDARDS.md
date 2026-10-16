@@ -211,6 +211,7 @@ The site can describe the work without any of it. Strip before publishing:
 | Delivery partners and vendors, and which one recommended what | The decision, without whose recommendation it was |
 | Model or vendor comparisons that reveal a procurement position | "the model underneath the agent was changed" |
 | Participant IDs from trackers | The role alone, or no attribution |
+| Participant verbatims as `quote` blocks (a quote tied to a role or region is internal data) | Paraphrase the verbatim into prose. `quote` blocks are Dani's own reframes and learnings, drawn from the sessions; that is what every pull-quote on the site already is (decided 2026-10-16) |
 | Full prioritisation score tables | The method, the range, and the outcome |
 | Exact internal governance dates | The month |
 | Community headcounts and org structure detail | "the architecture community" |
