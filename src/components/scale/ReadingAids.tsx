@@ -37,7 +37,8 @@ export function CountUp({ value }: { value: string }) {
 
     if (!countable || !ok || !match) return <span>{value}</span>;
     return (
-        <span ref={ref} aria-label={value}>
+        <span ref={ref}>
+            <span className="sr-only">{value}</span>
             <span aria-hidden="true">
                 {match[1]}
                 {shown ?? (inView ? n : 0)}

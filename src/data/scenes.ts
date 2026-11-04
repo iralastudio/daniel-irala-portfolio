@@ -71,20 +71,22 @@ export const scenes: Scene[] = [
     {
         id: 'touchpoint',
         index: '01',
-        kicker: 'Touchpoint · one screen',
+        kicker: 'Touchpoint · one interaction',
         scale: '10¹',
         scaleLabel: 'touchpoint',
-        headline: { lead: 'One screen, ', accent: 'tested.' },
+        headline: { lead: 'One touchpoint, ', accent: 'tested.' },
         body:
-            'The smallest scale: one interface, one decision, one reaction. A controlled ' +
-            'experiment leaves nowhere to hide. Two studies sit here. An A/B test on the ' +
-            'Nespresso mobile minibag, and usability testing for Nestlé IT’s Digital Agent.',
-        chip: 'Touchpoint · 2026',
+            'The smallest scale: one object or one interface, one reaction. Nowhere to ' +
+            'hide. Three projects sit here: a device and service built for remote teams, ' +
+            'testing the Nespresso Loyalty Program, and usability testing for ' +
+            'Nestlé IT’s Digital Agent.',
+        chip: 'Touchpoint · 2022–2026',
         links: [
-            { label: 'Nespresso · minibag A/B test', meta: 'mobile', href: '#nespresso' },
+            { label: 'Remote GO · device + service', meta: '2022', href: '#remote-go' },
+            { label: 'Nespresso · Loyalty Program', meta: 'consumer', href: '#nespresso' },
             { label: 'Digital Agent · usability testing', meta: 'Nestlé IT', href: '#digital-agent' },
         ],
-        tags: ['UX Research', 'A/B Testing', 'Usability Testing', 'Mobile', 'Experimentation'],
+        tags: ['Product Design', 'Prototyping', 'UX Research', 'Unmoderated Testing', 'Usability Testing'],
     },
     {
         id: 'team',
@@ -101,7 +103,7 @@ export const scenes: Scene[] = [
         chip: 'Team · 2026',
         links: [
             { label: 'Synthetic users & agent requirements', meta: '2026', href: '#synthetic-users' },
-            { label: 'Design Maturity Workshops', meta: '2022–2024', href: '#design-maturity' },
+            { label: 'Growing UX maturity', meta: '2022–2025', href: '#design-maturity' },
         ],
         tags: ['Synthetic Users', 'Service Design', 'AI Agents', 'Design Maturity'],
     },

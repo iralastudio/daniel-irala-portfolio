@@ -46,8 +46,8 @@
   --ease-reveal: cubic-bezier(0.77, 0, 0.175, 1); /* clip-path image reveals only */
   --dur-hover: 300ms;   /* chrome hover: pills, rail, close */
   --dur-enter: 600ms;   /* panel copy entrance */
-  --dur-window: 1100ms; /* window circle reveal; map recedes behind it */
-  --dur-fly: 1200ms;    /* camera flight between areas (Phase 2) */
+  --dur-window: 1300ms; /* window circle reveal; map recedes behind it (= WINDOW_MS) */
+  --dur-fly: 1400ms;    /* camera flight between areas (= FLY_MS) */
 
   /* — Accessibility font swaps (driven by AccessibilityContext classes) — */
   --font-display-stack: var(--font-display), 'Montserrat', system-ui, sans-serif;

@@ -2,12 +2,13 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useRef, useState, useMemo, useEffect, useLayoutEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { forceX, forceY, forceCollide } from 'd3-force';
 import { buildSystemMap, type SystemMapData, type MapNode } from '@/lib/systemMap';
 import { paintNode, paintLink, paintHitArea, PAR_AMP, K_PERSP } from '@/lib/mapPaint';
 import { runSignature, createSigState, type SigState, type SignatureProps } from '@/lib/mapSignature';
 import { useMapMotion, FLY_MS } from '@/lib/mapMotion';
-import { useWindowCamera, type Dolly } from '@/lib/mapWindow';
+import { useWindowCamera, nodeOrigin, type Dolly } from '@/lib/mapWindow';
 
 export interface FlyTo { index: number; key: number }
 export type { SignatureProps };
@@ -143,7 +144,7 @@ export function SystemMap({
     // Opening a window dollies toward its node; closing settles on the cluster (Phase 4).
     useWindowCamera({
         data, windowHref, dolly, reduced, fitTo, setFocused,
-        setAnchor: motion.setAnchor, neighboursOf: motion.neighboursOf,
+        setAnchor: motion.setAnchor,
     });
 
     // forceCollide keeps expanding the disc after the initial fits, eating their padding;
@@ -385,13 +386,16 @@ export function SystemMap({
         (node: any, event?: MouseEvent) => {
             const n = node as MapNode;
             if (n.href && n.href !== '#') {
-                addRipple(n); // the window's circle reveal grows from this ring
-                onSelect(n.href, event ? { x: event.clientX, y: event.clientY } : undefined);
+                // The dive starts at the dot itself (centre and drawn size), not the cursor.
+                const o = nodeOrigin(fgRef.current, wrapRef.current, n, zoomRef.current, offsetOf);
+                onSelect(n.href, o ?? (event ? { x: event.clientX, y: event.clientY } : undefined));
                 return;
             }
+            // One expansion per action: a click that only focuses gets this soft wave.
+            addRipple(n);
             focusCluster(n.cluster);
         },
-        [onSelect, focusCluster, addRipple]
+        [onSelect, focusCluster, addRipple, offsetOf]
     );
 
     // Paint lives in src/lib/mapPaint.ts; these wrappers hand it the live state.
@@ -473,18 +477,21 @@ export function SystemMap({
             )}
 
             {/* Signature overlay: the points that spell the word and fly out to the
-                nodes. Fixed and above the frosted panel (z-20), because the word sits
-                inside the panel and points drawn beneath the glass read as a smudge.
-                Pointer-events none, so the live graph stays clickable from frame zero.
-                Cleared and idle outside the sequence. */}
-            <canvas
-                ref={sigCanvasRef}
-                className="fixed inset-0 z-20 pointer-events-none"
-                width={Math.round(size.w * (typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1))}
-                height={Math.round(size.h * (typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1))}
-                style={{ width: size.w, height: size.h }}
-                aria-hidden="true"
-            />
+                nodes. Portalled to <body> so it sits above the frosted panel (z-20): the
+                word lives inside the panel, and any ancestor with a filter or transform
+                (the map container recedes behind windows) would trap it below the glass,
+                where the word reads as a smudge. Pointer-events none; idle when done. */}
+            {typeof document !== 'undefined' && createPortal(
+                <canvas
+                    ref={sigCanvasRef}
+                    className="fixed inset-0 z-20 pointer-events-none"
+                    width={Math.round(size.w * (window.devicePixelRatio || 1))}
+                    height={Math.round(size.h * (window.devicePixelRatio || 1))}
+                    style={{ width: size.w, height: size.h }}
+                    aria-hidden="true"
+                />,
+                document.body
+            )}
 
             <div className="grain-overlay absolute inset-0 pointer-events-none" />
         </div>

@@ -1,17 +1,33 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, m } from 'framer-motion';
+import { AnimatePresence, m, useIsPresent } from 'framer-motion';
 import { caseStudies, type CaseFigure } from '@/data/caseStudies';
 import { nodeContent } from '@/data/nodeContent';
 import { useDialogFocus } from '@/hooks/useDialogFocus';
-import { EXPO, stagger, rise, useMotionOK } from '@/lib/motion';
+import type { WindowOrigin } from '@/lib/clickOrigin';
+import { EXPO, WINDOW_MS, stagger, rise, useMotionOK } from '@/lib/motion';
 import { ActionPill } from './ActionPill';
 import { Compass } from './Compass';
+import { Tensions } from './Tensions';
 import { PodcastEmbed } from './PodcastEmbed';
 import { Iceberg, RoleTrack, Chain, Matrix, Swing } from './instruments';
 import { Figure, Lightbox } from './CaseFigure';
-import { Connected } from './WindowLinks';
+import { StoryBlock } from './storyInstruments';
+import { isStoryBlock } from '@/data/storyModels';
+import { isNespressoBlock } from '@/data/nespressoModels';
+import { isMaturityBlock } from '@/data/maturityModels';
+import { MaturityInstrument } from './maturityInstruments';
+import { isAgentBlock } from '@/data/agentModels';
+import { AgentInstrument } from './agentInstruments';
+import { isSynthBlock } from '@/data/synthModels';
+import { SynthInstrument } from './synthInstruments';
+import { isKeyBlock } from '@/data/keyModels';
+import { KeyInstrument } from './keyInstruments';
+import { isItpoBlock } from '@/data/itpoModels';
+import { ItpoInstrument } from './itpoInstruments';
+import { NespressoInstrument } from './nespressoInstruments';
+import { Connected, BookCall } from './WindowLinks';
 import { ScrollRoot, CountUp, ReadingProgress, useSectionSpy } from './ReadingAids';
 
 /**
@@ -33,8 +49,8 @@ import { ScrollRoot, CountUp, ReadingProgress, useSectionSpy } from './ReadingAi
 // Tempo matches the map (docs/MOTION-PLAN, Phase 4): the reveal takes 1.1 s, the
 // copy settles over 0.9 s per block with a 90 ms stagger, so a reader sees the
 // window arrive rather than appear. Exit stays shorter than entry.
-const container = stagger(0.09, 0.25);
-const block = rise(22, 0.9);
+const container = stagger(0.1, 0.4);
+const block = rise(22, 1.0);
 
 export function CaseStudyOverlay({
     href,
@@ -45,7 +61,7 @@ export function CaseStudyOverlay({
     lateral = false,
 }: {
     href: string;
-    origin?: { x: number; y: number } | null;
+    origin?: WindowOrigin | null;
     onClose: () => void;
     onSelect: (href: string, origin?: { x: number; y: number }) => void;
     /** The scale's colour: header dot and the opening wash (model B). */
@@ -71,7 +87,15 @@ export function CaseStudyOverlay({
     const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
     const ox = origin?.x ?? vw / 2;
     const oy = origin?.y ?? 160;
+    const r0 = Math.max(14, origin?.r ?? 14); // the dot's own drawn radius
     const coverR = Math.ceil(Math.hypot(Math.max(ox, vw - ox), Math.max(oy, vh - oy))) + 40;
+    // Two openings, one per entry point: out of a dot as a circle, out of a list row
+    // as a rectangle that starts as the row itself and unfolds to the whole screen.
+    const rect = origin?.rect;
+    const clipFrom = rect
+        ? `inset(${rect.top}px ${vw - rect.right}px ${vh - rect.bottom}px ${rect.left}px round 3px)`
+        : `circle(${r0}px at ${ox}px ${oy}px)`;
+    const clipTo = rect ? 'inset(0px 0px 0px 0px round 0px)' : `circle(${coverR}px at ${ox}px ${oy}px)`;
 
     // Native CSS clip-path transition for the reveal — framer's complex-value
     // parser mangles `circle(r at x y)` strings, so the circle is driven by the
@@ -81,11 +105,12 @@ export function CaseStudyOverlay({
     const section = useSectionSpy(vpRef, href);
     // Model B: a pointer-opened window is first the bead's own colour, which then
     // dissolves into the glass, so it reads as the node opened up.
-    const wash = Boolean(origin) && !reduceMotion && !lateral;
+    const wash = Boolean(origin) && !rect && !reduceMotion && !lateral; // the dot's tint only
     useEffect(() => {
         const el = vpRef.current;
         if (!el || reduceMotion || lateral) return;
-        el.style.clipPath = `circle(14px at ${ox}px ${oy}px)`;
+        // Starts at the dot's own edge, so the window reads as the dot opening up.
+        el.style.clipPath = clipFrom;
         el.style.transition = 'clip-path var(--dur-window) var(--ease-out-expo)';
         // The clip MUST be cleared at the end: a clip-path on this ancestor makes it the
         // backdrop root, and the article's frosted glass then stops blurring the map.
@@ -108,8 +133,8 @@ export function CaseStudyOverlay({
         const raf1 = requestAnimationFrame(() => {
             raf2 = requestAnimationFrame(() => {
                 if (done) return;
-                el.style.clipPath = `circle(${coverR}px at ${ox}px ${oy}px)`;
-                t = window.setTimeout(finish, 1100 + 150); // --dur-window + grace
+                el.style.clipPath = clipTo;
+                t = window.setTimeout(finish, WINDOW_MS + 150); // --dur-window + grace
             });
         });
         return () => {
@@ -118,11 +143,20 @@ export function CaseStudyOverlay({
             clearTimeout(t);
             el.removeEventListener('transitionend', onEnd);
         };
-    }, [ox, oy, coverR, reduceMotion, lateral]);
+    }, [clipFrom, clipTo, reduceMotion, lateral]);
+
+    // A window on its way out (the old one during a crossfade) must stop answering
+    // Esc: otherwise both windows close, history goes back twice, and the visitor can
+    // be thrown off the page. Read through a ref so the scroll lock below never re-runs.
+    const isPresent = useIsPresent();
+    const presentRef = useRef(true);
+    useEffect(() => {
+        presentRef.current = isPresent;
+    }, [isPresent]);
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
-            if (e.key !== 'Escape') return;
+            if (e.key !== 'Escape' || !presentRef.current) return;
             if (lightbox) setLightbox(null);
             else onClose();
         };
@@ -152,7 +186,7 @@ export function CaseStudyOverlay({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.8, ease: EXPO }}
+                transition={{ duration: 1.0, ease: EXPO }}
             />
 
 
@@ -178,10 +212,10 @@ export function CaseStudyOverlay({
                     <m.div
                         aria-hidden="true"
                         className="absolute inset-0 z-20 pointer-events-none"
-                        style={{ background: `color-mix(in srgb, ${color} 72%, var(--color-surface))` }}
+                        style={{ background: `color-mix(in srgb, ${color} 18%, var(--color-surface))` }}
                         initial={{ opacity: 1 }}
                         animate={{ opacity: 0 }}
-                        transition={{ delay: 0.25, duration: 0.6, ease: EXPO }}
+                        transition={{ delay: 0.35, duration: 0.9, ease: EXPO }}
                     />
                 )}
                 <ScrollRoot.Provider value={vpRef}>
@@ -260,7 +294,7 @@ export function CaseStudyOverlay({
 
                         <m.p
                             variants={block}
-                            className="font-display italic text-ink-soft mt-4 max-w-[44ch]"
+                            className="font-display italic text-ink-soft mt-4"
                             style={{ fontSize: 'clamp(1.1rem, 1.6vw, 1.4rem)' }}
                         >
                             {study.summary}
@@ -296,7 +330,7 @@ export function CaseStudyOverlay({
                                             return (
                                                 <p
                                                     key={i}
-                                                    className="text-ink-soft max-w-[64ch]"
+                                                    className="text-ink-soft"
                                                     style={{ fontSize: 'var(--step-0)', lineHeight: 1.7 }}
                                                 >
                                                     {b.text}
@@ -307,7 +341,7 @@ export function CaseStudyOverlay({
                                             return (
                                                 <blockquote
                                                     key={i}
-                                                    className="border-l-2 border-accent pl-5 py-1 font-display italic text-ink max-w-[52ch]"
+                                                    className="border-l-2 border-accent pl-5 py-1 font-display italic text-ink"
                                                     style={{ fontSize: 'clamp(1.25rem, 2vw, 1.7rem)', lineHeight: 1.3 }}
                                                 >
                                                     {b.text}
@@ -329,6 +363,13 @@ export function CaseStudyOverlay({
                                         if (b.kind === 'swing') {
                                             return <Swing key={i} model={b.model} />;
                                         }
+                                        if (isStoryBlock(b)) return <StoryBlock key={i} block={b} />;
+                                        if (isNespressoBlock(b)) return <NespressoInstrument key={i} block={b} />;
+                                        if (isMaturityBlock(b)) return <MaturityInstrument key={i} block={b} />;
+                                        if (isAgentBlock(b)) return <AgentInstrument key={i} block={b} />;
+                                        if (isSynthBlock(b)) return <SynthInstrument key={i} block={b} />;
+                                        if (isKeyBlock(b)) return <KeyInstrument key={i} block={b} />;
+                                        if (isItpoBlock(b)) return <ItpoInstrument key={i} block={b} />;
                                         // gallery
                                         return (
                                             <div key={i} className="grid gap-5 pt-1">
@@ -383,6 +424,14 @@ export function CaseStudyOverlay({
                                     </div>
                                 )}
 
+                                {node.gallery && (
+                                    <m.div variants={block} className="grid gap-5 mt-8">
+                                        {node.gallery.map((fig) => (
+                                            <Figure key={fig.src} fig={fig} onOpen={(f, from) => setLightbox({ fig: f, from })} />
+                                        ))}
+                                    </m.div>
+                                )}
+
                                 {node.podcast && (
                                     <m.div variants={block} className="mt-8">
                                         <PodcastEmbed {...node.podcast} />
@@ -395,7 +444,13 @@ export function CaseStudyOverlay({
                                     </m.div>
                                 )}
 
-                                {node.list && !node.compass && (
+                                {node.list && node.tensions && (
+                                    <m.div variants={block}>
+                                        <Tensions items={node.list} />
+                                    </m.div>
+                                )}
+
+                                {node.list && !node.compass && !node.tensions && (
                                     <m.dl
                                         variants={block}
                                         className={node.list.length > 1 ? 'grid sm:grid-cols-2 gap-3 mt-8' : 'grid gap-3 mt-8'}
@@ -442,6 +497,9 @@ export function CaseStudyOverlay({
 
                         <m.div variants={block}>
                             <Connected href={href} onSelect={onSelect} />
+                        </m.div>
+                        <m.div variants={block}>
+                            <BookCall href={href} />
                         </m.div>
                     </m.div>
                 </article>

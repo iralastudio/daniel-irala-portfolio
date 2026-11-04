@@ -1,7 +1,14 @@
 'use client';
 
-import { clickOrigin } from '@/lib/clickOrigin';
+import { clickOrigin, type WindowOrigin } from '@/lib/clickOrigin';
 import { cn } from '@/lib/cn';
+
+// A row opens its window by unfolding from the row itself (pointer or keyboard alike),
+// so the row's box, not the cursor, is the origin.
+const rowOrigin = (el: HTMLElement): WindowOrigin => {
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, rect: { left: r.left, top: r.top, right: r.right, bottom: r.bottom } };
+};
 
 /**
  * ActionPill — THE single action control used everywhere (SectionPanel entries,
@@ -36,7 +43,7 @@ export function ActionPill({
     row?: boolean;
     /** Row variant only: a leading colour dot naming the scale the target lives at. */
     dot?: string;
-    onSelect?: (href: string, origin?: { x: number; y: number }) => void;
+    onSelect?: (href: string, origin?: WindowOrigin) => void;
 }) {
     const focus =
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background';
@@ -82,7 +89,7 @@ export function ActionPill({
 
     if (href.startsWith('#')) {
         return (
-            <button onClick={(e) => onSelect?.(href, clickOrigin(e))} className={cls} style={{ fontSize: 'var(--step--1)' }}>
+            <button onClick={(e) => onSelect?.(href, row ? rowOrigin(e.currentTarget) : clickOrigin(e))} className={cls} style={{ fontSize: 'var(--step--1)' }}>
                 {body}
             </button>
         );

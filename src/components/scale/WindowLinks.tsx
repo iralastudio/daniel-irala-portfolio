@@ -1,6 +1,6 @@
 'use client';
 
-import { nodeContent, contentOrder, HREF_SCENE } from '@/data/nodeContent';
+import { nodeContent, contentOrder, HREF_SCENE, BOOKING_URL, DEFAULT_CLOSE, PROJECT_HREFS } from '@/data/nodeContent';
 import { GROUP } from '@/lib/systemMap';
 import { ActionPill } from './ActionPill';
 
@@ -24,7 +24,9 @@ export function Connected({
     const scene = HREF_SCENE[href];
     const items = curated.length
         ? curated
-        : contentOrder.filter((h) => h !== href && HREF_SCENE[h] === scene && nodeContent[h]);
+        // #contact is a way to reach Dani, not more work at this scale; listing it here
+        // stacked a second "talk to me" under windows that already end with one.
+        : contentOrder.filter((h) => h !== href && h !== '#contact' && HREF_SCENE[h] === scene && nodeContent[h]);
     if (items.length === 0) return null;
     const title = curated.length ? 'Connected' : 'More at this scale';
     return (
@@ -44,5 +46,29 @@ export function Connected({
                 ))}
             </div>
         </nav>
+    );
+}
+
+/**
+ * BookCall: the close of every PROJECT window. Reading convinces; this converts. One
+ * line (per window, else the default) and one action, the booking calendar. Projects
+ * only (PROJECT_HREFS): personal windows already end with their own action, and two
+ * ways to say "talk to me" on one page is noise.
+ */
+export function BookCall({ href }: { href: string }) {
+    if (!PROJECT_HREFS.includes(href)) return null;
+    const close = nodeContent[href]?.close;
+    return (
+        <aside aria-label="Book a call" className="mt-12 rounded-sm border border-ink/10 bg-background/70 px-5 py-5 sm:flex sm:items-center sm:justify-between sm:gap-6">
+            <div>
+                <div className="label-mono mb-1.5">Next step</div>
+                <p className="text-ink max-w-[46ch]" style={{ fontSize: 'var(--step-0)', lineHeight: 1.5 }}>
+                    {close ?? DEFAULT_CLOSE}
+                </p>
+            </div>
+            <div className="mt-4 shrink-0 sm:mt-0">
+                <ActionPill primary external label="Book a call" href={BOOKING_URL} />
+            </div>
+        </aside>
     );
 }

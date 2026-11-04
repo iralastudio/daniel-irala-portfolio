@@ -24,8 +24,8 @@ export interface SigState {
     fade: number;                // ms a node takes to appear once its point lands
 }
 
-const SIG_HOLD = 650;       // ms the word stays legible as points
-const SIG_FLY = 1700;       // ms per point flight
+const SIG_HOLD = 900;       // ms the word stays legible as points before it disperses
+const SIG_FLY = 1900;       // ms per point flight
 const SIG_MAX_DELAY = 650;  // ms, stagger cap (hubs lead, satellites trail)
 const SIG_NODE_FADE = 320;  // ms a node takes to appear once its point lands
 const SIG_STEP = 3;         // px sampling grid over the word
@@ -146,7 +146,6 @@ export function runSignature(opts: {
     sig.now = sig.t0;
     sig.fade = fade;
     setActive(true);
-    signature.onStart();
 
     const dpr = window.devicePixelRatio || 1;
     let raf = 0;
@@ -206,7 +205,10 @@ export function runSignature(opts: {
         }
         raf = requestAnimationFrame(frame);
     };
-    raf = requestAnimationFrame(frame);
+    // Draw the first frame now, and only then hide the DOM word: the word is never
+    // missing from the screen, even if the next animation frame is late.
+    frame();
+    signature.onStart();
     return () => {
         cancelAnimationFrame(raf);
         if (sig.phase === 'hold' || sig.phase === 'fly') finish();

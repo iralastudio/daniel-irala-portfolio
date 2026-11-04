@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 import "./globals.css";
 
 export const metadata: Metadata = {
-    metadataBase: new URL("https://www.irala.studio"),
+    metadataBase: new URL("https://daniel-irala-portfolio.vercel.app"),
     title: "Daniel Irala | Design Researcher & Service Designer",
     description:
         "Senior Design Researcher and Service Designer at Nestlé IT. Qualitative and quantitative research, " +
@@ -27,8 +27,8 @@ export const metadata: Metadata = {
             "Making meaning out of chaos because clarity is a form of kindness. " +
             "Senior Design Researcher & Service Designer at Nestlé IT.",
         type: "website",
-        url: "https://www.irala.studio",
-        siteName: "irala.studio",
+        url: "https://daniel-irala-portfolio.vercel.app",
+        siteName: "Daniel Irala",
     },
 };
 
@@ -40,7 +40,7 @@ const jsonLd = {
     description:
         "Design Researcher and Service Designer specialising in qualitative and quantitative research, " +
         "service design, systems thinking, and journey management in large enterprise environments.",
-    email: "hello.daniel@irala.studio",
+    email: "daniel.irala.v@gmail.com",
     sameAs: ["https://www.linkedin.com/in/danirala"],
     address: { "@type": "PostalAddress", addressLocality: "Barcelona", addressCountry: "ES" },
     worksFor: { "@type": "Organization", name: "Nestlé", url: "https://www.nestle.com" },
@@ -56,7 +56,7 @@ const jsonLd = {
         "Co-design Facilitation",
         "Service Blueprinting",
     ],
-    url: "https://www.irala.studio",
+    url: "https://daniel-irala-portfolio.vercel.app",
 };
 
 export default function RootLayout({

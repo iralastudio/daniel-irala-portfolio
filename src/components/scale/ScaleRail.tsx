@@ -8,7 +8,7 @@ import { cn } from '@/lib/cn';
 // power-of-ten number.
 const NAV: { label: string; hint: string }[] = [
     { label: 'About me', hint: 'the individual' },
-    { label: 'Touchpoint', hint: 'one screen' },
+    { label: 'Touchpoint', hint: 'one interaction' },
     { label: 'Team', hint: 'a workflow' },
     { label: 'Organisation', hint: 'an enterprise' },
     { label: 'Beyond', hint: 'the wider field' },

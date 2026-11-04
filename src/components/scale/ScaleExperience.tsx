@@ -7,6 +7,7 @@ import { scenes, overviewScene } from '@/data/scenes';
 import { useAccessibility } from '@/hooks/useAccessibility';
 import { nodeContent, HREF_SCENE } from '@/data/nodeContent';
 import type { Dolly } from '@/lib/mapWindow';
+import type { WindowOrigin } from '@/lib/clickOrigin';
 import { SystemMap, type FlyTo } from './SystemMap';
 import { GROUP } from '@/lib/systemMap';
 import { SystemMapBackdrop } from './SystemMapBackdrop';
@@ -53,7 +54,10 @@ export function ScaleExperience() {
     const { settings } = useAccessibility();
     const [active, setActive] = useState(OVERVIEW);
     const [selected, setSelected] = useState<string | null>(null);
-    const [origin, setOrigin] = useState<{ x: number; y: number } | null>(null);
+    const [origin, setOrigin] = useState<WindowOrigin | null>(null);
+    // The point the map dives into; kept after close so it pulls back out around the
+    // same point. Lateral moves and deep links keep the previous point / the centre.
+    const [dive, setDive] = useState<{ x: number; y: number } | null>(null);
     const [flyTo, setFlyTo] = useState<FlyTo | null>(null);
     const [releasePinned, setReleasePinned] = useState(0);
     // The "scroll to zoom · drag · click" hint has done its job once the visitor has
@@ -137,7 +141,7 @@ export function ScaleExperience() {
 
     // Open the window; keep the rail/panel context in sync with what was opened.
     // `o` is the click's screen position — the window's circle-reveal grows from it.
-    const onSelect = useCallback((href: string, o?: { x: number; y: number }) => {
+    const onSelect = useCallback((href: string, o?: WindowOrigin) => {
         // From inside an open window this is a lateral move: crossfade, no circle,
         // the camera pans behind. A pointer open dollies; a keyboard open does not.
         const lateralMove = openRef.current !== null;
@@ -145,6 +149,9 @@ export function ScaleExperience() {
         if (o || lateralMove) setDolly({ href, key: Date.now() });
         setSelected(href);
         setOrigin(lateralMove ? null : o ?? null);
+        // A dot dives the map into itself; a list row only softens it (the row is not
+        // on the map, so zooming into the click point would mean nothing).
+        if (o && !lateralMove) setDive(o.rect ? null : { x: o.x, y: o.y });
         const i = HREF_SCENE[href];
         if (typeof i === 'number') setActive(i);
         // Mark the entry as ours so closing knows whether going back is safe.
@@ -285,8 +292,14 @@ export function ScaleExperience() {
                     <div
                         className="absolute inset-0"
                         style={{
-                            filter: selected ? 'blur(2.5px)' : 'blur(0px)',
-                            transform: selected ? 'scale(0.965)' : 'scale(1)',
+                            // `none` at rest, not blur(0)/scale(1): any filter or transform
+                            // makes this a stacking context, which trapped the signature's
+                            // overlay under the frosted panel (the word became a smudge).
+                            // The dive: the map zooms gently into the dot the window grows
+                            // from and softens out of focus, on the reveal's own curve.
+                            filter: selected ? 'blur(3px)' : 'none',
+                            transform: selected && !origin?.rect ? 'scale(1.06)' : 'none',
+                            transformOrigin: dive ? `${dive.x}px ${dive.y}px` : '50% 50%',
                             transition: 'filter var(--dur-window) var(--ease-out-expo), transform var(--dur-window) var(--ease-out-expo)',
                             willChange: selected ? 'filter, transform' : undefined,
                         }}

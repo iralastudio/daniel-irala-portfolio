@@ -24,7 +24,8 @@ export interface MapNode {
     x?: number;
     y?: number;
 }
-interface NamedNode { label: string; href: string; small?: boolean }
+// No href = a bubble that is not openable yet; clicking it focuses its cluster.
+interface NamedNode { label: string; href?: string; small?: boolean }
 export interface MapLink { source: string; target: string }
 export interface ClusterMeta { i: number; cx: number; cy: number; radius: number; label: string; href?: string }
 export interface SystemMapData {
@@ -82,20 +83,17 @@ function namedNodes(s: Scene): NamedNode[] {
         return [
             { label: 'About me', href: '#about' },
             { label: 'Contact', href: '#contact' },
-            { label: 'Vision', href: '#compass', small: true },
-            { label: 'Mission', href: '#compass', small: true },
-            { label: 'Values', href: '#compass', small: true },
-            { label: 'Direction', href: '#compass', small: true },
-            { label: 'Future', href: '#compass', small: true },
-            { label: 'Past', href: '#compass', small: true },
+            // One bubble for the whole compass (Vision · Mission · Values · Direction ·
+            // Past), named for what it answers rather than for the instrument.
+            { label: 'What drives me', href: '#compass' },
         ];
     if (s.id === 'beyond')
         return [
-            { label: 'Thinking', href: '#thinking' },
+            // No 'Thinking' bubble: its window opens from the Beyond hub itself.
             { label: 'Talks', href: '#talks' },
             { label: 'Podcast', href: '#podcast' },
-            { label: 'Articles', href: '#thinking' },
-            { label: 'Reading', href: '#thinking' },
+            { label: 'Articles · coming soon' },
+            { label: 'Reading · coming soon' },
         ];
     if (s.id === 'organisation')
         return [

@@ -57,7 +57,7 @@ const draw: Variants = {
     show: { pathLength: 1, transition: { duration: 0.8, ease: EXPO, delay: 0.3 } },
 };
 
-function Beat({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+export function Beat({ children, className = '' }: { children: React.ReactNode; className?: string }) {
     // Both the OS preference and the site toggle: before Phase 0 this read the OS
     // setting only, so DisplayMenu's reduce-motion left the instruments animating.
     const reduced = !useMotionOK();
@@ -76,7 +76,7 @@ function Beat({ children, className = '' }: { children: React.ReactNode; classNa
 }
 
 /** One staggered element inside a Beat. Static when motion is reduced. */
-function BeatItem({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+export function BeatItem({ children, className = '' }: { children: React.ReactNode; className?: string }) {
     const reduced = !useMotionOK();
     if (reduced) return <div className={className}>{children}</div>;
     return (
@@ -87,7 +87,7 @@ function BeatItem({ children, className = '' }: { children: React.ReactNode; cla
 }
 
 /** The shared shell every instrument sits in, so they read as one family. */
-function Instrument({ prompt, note, children }: { prompt: string; note?: string; children: React.ReactNode }) {
+export function Instrument({ prompt, note, children }: { prompt: string; note?: string; children: React.ReactNode }) {
     return (
         <div className="rounded-2xl border border-ink/10 overflow-hidden bg-background/40">
             <div className="px-5 sm:px-7 py-5 border-b border-ink/10">
@@ -336,7 +336,12 @@ export function Chain({ model }: { model: ChainModel }) {
  * three-column table of phrases is unreadable on a phone. Semantics stay honest
  * via a definition list per row (role is the term, its symptom the description).
  */
+// Literal class names, so Tailwind keeps them: a matrix lays its cells out in as many
+// columns as it has (the failure table has four, the rounds table three).
+const MATRIX_COLS: Record<number, string> = { 1: 'sm:grid-cols-1', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4' };
+
 export function Matrix({ model }: { model: MatrixModel }) {
+    const cols = MATRIX_COLS[model.columns.length] ?? 'sm:grid-cols-3';
     return (
         <Instrument prompt={model.prompt} note={model.note}>
             <Beat className="px-5 sm:px-7 py-6 space-y-3">
@@ -351,7 +356,7 @@ export function Matrix({ model }: { model: MatrixModel }) {
                                     {row.gap}
                                 </h4>
                             </div>
-                            <dl className="grid gap-px bg-ink/10 sm:grid-cols-3 border-t border-ink/10 m-0">
+                            <dl className={`grid gap-px bg-ink/10 ${cols} border-t border-ink/10 m-0`}>
                                 {row.cells.map((cell, ci) => (
                                     <div key={model.columns[ci]} className="bg-surface px-4 py-3.5">
                                         <dt className="label-mono !text-[9px] text-ink-soft/70 mb-1.5">{model.columns[ci]}</dt>

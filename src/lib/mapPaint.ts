@@ -104,7 +104,7 @@ export function paintNode(
     const { ox, oy } = offsetOf(n, scale);
     const x = node.x + ox;
     const y = node.y + oy;
-    const rz = n.r * depthScale(zDraw) * (1 + 0.25 * self);
+    const rz = n.r * depthScale(zDraw) * (1 + 0.12 * self); // a quiet lift, not a jump
     const r = actionable ? Math.max(rz, MIN_DRAW_R / scale) : rz;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, 2 * Math.PI);

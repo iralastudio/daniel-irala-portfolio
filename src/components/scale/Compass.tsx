@@ -4,47 +4,27 @@ import { useState, useCallback } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import type { ContentListItem } from '@/data/nodeContent';
 import { cn } from '@/lib/cn';
-import { EXPO } from '@/lib/motion';
+import { EXPO, useMotionOK } from '@/lib/motion';
+import { SCENES, HINTS } from './driveScenes';
 
 /**
- * Compass — the referential rendering of the #compass window: the six things
- * that steer the work (Vision · Mission · Values · Direction · Future · Past)
- * laid out around a dial, with a NEEDLE that swings to whichever direction you
- * point at. Choosing a direction rotates the needle to it and reveals its line.
+ * "What drives me" — the rendering of the #compass window. Five threads (Vision ·
+ * Mission · Values · Direction · Past), each with its own small interactive
+ * drawing on a shared stage (driveScenes.tsx), and the thread's line underneath.
  *
- * The plain-text of all six lines still lives, server-rendered, in
- * CrawlableContent (as a <dl>), so SEO / screen readers get the full substance;
- * here the same items become an instrument you can actually read a heading off.
- *
- * Motion is CSS transform on the SVG needle group (transitions cleanly, and
- * html.reduce-motion collapses the duration globally — the needle then snaps).
+ * The plain text of all five lines still lives, server-rendered, in CrawlableContent
+ * (as a <dl>), and the reading below the stage is always the full sentence, so the
+ * stage is an enhancement: it is aria-hidden and pointer-driven, like the map.
+ * Selection is click / focus / arrow keys (not hover) so sweeping across the row
+ * does not replay scenes. Reduced motion renders every scene in its settled state.
  */
-
-const VB = 340; // svg viewBox is 0 0 VB VB
-const C = VB / 2; // centre
-const RING_R = 98; // dial ring radius (the white face fills to here)
-const LABEL_R = 142; // radius the labels sit at — well outside the white face
-const NEEDLE_N = 78; // north (accent) tip length
-const NEEDLE_S = 48; // south (muted) tail length
-
-// Angle of item i, measured clockwise from north (top). Six items → 60° apart.
-const angleOf = (i: number, n: number) => (i * 360) / n;
-
-// Point on a circle of radius r at angle θ (deg, clockwise from north).
-function polar(r: number, deg: number) {
-    const rad = ((deg - 90) * Math.PI) / 180; // -90 so 0° is up
-    return { x: C + r * Math.cos(rad), y: C + r * Math.sin(rad) };
-}
 
 export function Compass({ items }: { items: ContentListItem[] }) {
     const [active, setActive] = useState(0);
+    const ok = useMotionOK();
     const n = items.length;
-    const angle = angleOf(active, n);
 
-    const move = useCallback(
-        (dir: 1 | -1) => setActive((i) => (i + dir + n) % n),
-        [n]
-    );
+    const move = useCallback((dir: 1 | -1) => setActive((i) => (i + dir + n) % n), [n]);
 
     const onKeyDown = useCallback(
         (e: React.KeyboardEvent) => {
@@ -59,111 +39,71 @@ export function Compass({ items }: { items: ContentListItem[] }) {
         [move]
     );
 
+    const item = items[active];
+    const Scene = SCENES[item.term];
+
     return (
-        <div className="mt-8 flex flex-col items-center">
-            {/* The instrument. Labels are the controls; the dial is decorative. */}
+        <div className="mt-8">
             <div
                 role="group"
-                aria-label="The compass — choose what steers the work"
+                aria-label="What drives me — choose a thread"
                 onKeyDown={onKeyDown}
-                className="relative w-full max-w-[360px] aspect-square mx-auto select-none"
+                className="grid grid-cols-3 sm:grid-cols-5 gap-2"
             >
-                <svg viewBox={`0 0 ${VB} ${VB}`} className="absolute inset-0 w-full h-full" aria-hidden="true">
-                    {/* the white face — kept inside the ring so the labels never sit on it */}
-                    <circle cx={C} cy={C} r={RING_R} fill="color-mix(in srgb, var(--color-surface) 60%, transparent)" />
-                    {/* dial ring */}
-                    <circle cx={C} cy={C} r={RING_R} fill="none" stroke="var(--color-text-primary)" strokeOpacity="0.14" strokeWidth="1.5" />
-                    <circle cx={C} cy={C} r={RING_R - 12} fill="none" stroke="var(--color-text-primary)" strokeOpacity="0.06" strokeWidth="1" />
-
-                    {/* one tick per direction; the active tick is accent */}
-                    {items.map((_, i) => {
-                        const a = angleOf(i, n);
-                        const outer = polar(RING_R, a);
-                        const inner = polar(RING_R - 14, a);
-                        const on = i === active;
-                        return (
-                            <line
-                                key={i}
-                                x1={inner.x}
-                                y1={inner.y}
-                                x2={outer.x}
-                                y2={outer.y}
-                                stroke={on ? 'var(--color-accent)' : 'var(--color-text-primary)'}
-                                strokeOpacity={on ? 1 : 0.25}
-                                strokeWidth={on ? 2.5 : 1.5}
-                                strokeLinecap="round"
-                                style={{ transition: 'stroke 0.3s, stroke-opacity 0.3s, stroke-width 0.3s' }}
-                            />
-                        );
-                    })}
-
-                    {/* the needle — rotates to the active direction */}
-                    <g
-                        style={{
-                            transform: `rotate(${angle}deg)`,
-                            transformOrigin: `${C}px ${C}px`,
-                            transformBox: 'view-box',
-                            transition: 'transform 0.7s var(--ease-out-expo)',
-                        }}
-                    >
-                        {/* south tail (muted) */}
-                        <path d={`M ${C} ${C} L ${C - 7} ${C} L ${C} ${C + NEEDLE_S} L ${C + 7} ${C} Z`} fill="var(--color-text-primary)" fillOpacity="0.32" />
-                        {/* north tip (accent) */}
-                        <path d={`M ${C} ${C} L ${C - 7} ${C} L ${C} ${C - NEEDLE_N} L ${C + 7} ${C} Z`} fill="var(--color-accent)" />
-                    </g>
-
-                    {/* hub */}
-                    <circle cx={C} cy={C} r="8" fill="var(--color-surface)" stroke="var(--color-accent)" strokeWidth="2" />
-                    <circle cx={C} cy={C} r="2.5" fill="var(--color-accent)" />
-                </svg>
-
-                {/* label controls, positioned around the ring */}
-                {items.map((item, i) => {
-                    const a = angleOf(i, n);
-                    const p = polar(LABEL_R, a);
+                {items.map((it, i) => {
                     const on = i === active;
                     return (
                         <button
-                            key={item.term}
+                            key={it.term}
                             type="button"
                             onClick={() => setActive(i)}
-                            onPointerEnter={(e) => {
-                                if (e.pointerType === 'mouse') setActive(i);
-                            }}
                             onFocus={() => setActive(i)}
                             aria-pressed={on}
                             className={cn(
-                                'absolute font-display font-semibold whitespace-nowrap rounded-sm px-2.5 py-1 transition-[color,background-color,transform] duration-300 ease-out',
+                                'tap relative text-left rounded-sm border px-3 py-2 transition-[color,background-color,border-color] duration-300',
                                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                                on ? 'text-accent scale-105' : 'text-ink/55 hover:text-ink'
+                                on ? 'border-accent bg-accent/5 text-accent' : 'border-ink/15 text-ink-soft hover:text-ink'
                             )}
-                            style={{
-                                left: `${(p.x / VB) * 100}%`,
-                                top: `${(p.y / VB) * 100}%`,
-                                transform: 'translate(-50%, -50%)',
-                                fontSize: 'var(--step-0)',
-                            }}
                         >
-                            {item.term}
+                            <span className="label-mono !text-[10px] block !text-current">{String(i + 1).padStart(2, '0')}</span>
+                            <span className="font-display font-semibold block" style={{ fontSize: 'var(--step--1)' }}>
+                                {it.term}
+                            </span>
                         </button>
                     );
                 })}
             </div>
 
-            {/* the reading — the active direction's line. aria-live so a keyboard /
-                screen-reader user hears each heading as the needle swings. */}
-            <div className="mt-7 min-h-[5.5rem] w-full max-w-[46ch] text-center" aria-live="polite">
-                <AnimatePresence mode="wait">
+            <div className="mt-3 rounded-xl border border-ink/10 bg-surface/60 overflow-hidden">
+                <div className="flex items-center justify-between px-4 pt-3">
+                    <span className="label-mono !text-[10px]">{String(active + 1).padStart(2, '0')} · {item.term}</span>
+                    <span className="label-mono !text-[10px]">{HINTS[item.term]}</span>
+                </div>
+                <AnimatePresence mode="wait" initial={false}>
+                    <m.div
+                        key={item.term}
+                        initial={ok ? { opacity: 0 } : false}
+                        animate={{ opacity: 1 }}
+                        exit={ok ? { opacity: 0 } : undefined}
+                        transition={{ duration: 0.25, ease: EXPO }}
+                    >
+                        {Scene && <Scene ok={ok} />}
+                    </m.div>
+                </AnimatePresence>
+            </div>
+
+            <div className="mt-6 min-h-[5.5rem]" aria-live="polite">
+                <AnimatePresence mode="wait" initial={false}>
                     <m.div
                         key={active}
-                        initial={{ opacity: 0, y: 8 }}
+                        initial={ok ? { opacity: 0, y: 8 } : false}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -8 }}
+                        exit={ok ? { opacity: 0, y: -8 } : undefined}
                         transition={{ duration: 0.3, ease: EXPO }}
                     >
-                        <div className="label-mono !text-accent mb-2">{items[active].term}</div>
-                        <p className="text-ink-soft" style={{ fontSize: 'var(--step-0)', lineHeight: 1.6 }}>
-                            {items[active].text}
+                        <div className="label-mono !text-accent mb-2">{item.term}</div>
+                        <p className="text-ink" style={{ fontSize: 'var(--step-0)', lineHeight: 1.6 }}>
+                            {item.text}
                         </p>
                     </m.div>
                 </AnimatePresence>

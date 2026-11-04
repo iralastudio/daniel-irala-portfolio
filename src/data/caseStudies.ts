@@ -4,6 +4,17 @@
 // nodeContent on the SAME surface. Real facts only — no fabrication.
 
 import type { ContentFact } from './nodeContent';
+import type { StoryCaseBlock } from './storyModels';
+import type { NespressoBlock } from './nespressoModels';
+import type { MaturityBlock } from './maturityModels';
+import type { AgentBlock } from './agentModels';
+import type { SynthBlock } from './synthModels';
+import type { KeyBlock } from './keyModels';
+import type { ItpoBlock } from './itpoModels';
+import { remoteGo } from './caseRemoteGo';
+import { nespresso } from './caseNespresso';
+import { designMaturity } from './caseMaturity';
+import { syntheticUsers } from './caseSynthetic';
 
 export interface CaseFigure {
     src: string;
@@ -82,7 +93,14 @@ export type CaseBlock =
     | { kind: 'roletrack'; model: RoleTrackModel }
     | { kind: 'chain'; model: ChainModel }
     | { kind: 'matrix'; model: MatrixModel }
-    | { kind: 'swing'; model: SwingModel };
+    | { kind: 'swing'; model: SwingModel }
+    | StoryCaseBlock
+    | NespressoBlock
+    | MaturityBlock
+    | AgentBlock
+    | SynthBlock
+    | KeyBlock
+    | ItpoBlock;
 
 export interface CaseSection {
     n: string;          // "01"
@@ -104,18 +122,21 @@ const SEAMLESS_IMG = '/images/Project Images/Seamless Conferencing';
 const ITPO_IMG = '/images/Project Images/IT Product Offering';
 
 export const caseStudies: Record<string, CaseStudy> = {
+    '#remote-go': remoteGo,
+    '#nespresso': nespresso,
+    '#design-maturity': designMaturity,
+    '#synthetic-users': syntheticUsers,
     '#digital-agent': {
         href: '#digital-agent',
         kicker: 'Touchpoint · Nestlé IT · 2026',
-        positioning: 'The second of two parallel studies: discovery decided what to build, this decided whether it was ready',
         title: 'Digital Agent · usability testing',
         summary:
-            "Moderated testing of an internal AI agent against a go or no-go bar agreed in advance, which turned a launch debate into a launch decision and showed that the model underneath an agent is a design choice.",
+            'Testing one AI agent across three roles and three data sources, against a go/no-go bar set before anyone sat down. It turned each launch debate into a launch decision.',
         facts: [
-            { value: 'Go / No-Go', label: 'Bar agreed before testing' },
-            { value: 'Conditional', label: 'Pilot launch the evidence shaped' },
-            { value: '3', label: 'Failure types, each with an owner' },
-            { value: '15', label: 'Moderated sessions' },
+            { value: '35', label: 'Test sessions across 4 rounds' },
+            { value: '29', label: 'Participant seats across three roles' },
+            { value: '3', label: 'Data sources: SharePoint, LeanIX, ServiceNow' },
+            { value: 'Go / No-Go', label: 'Bar agreed with leadership' },
         ],
         sections: [
             {
@@ -125,17 +146,61 @@ export const caseStudies: Record<string, CaseStudy> = {
                     {
                         kind: 'text',
                         text:
-                            "Nestlé IT built a Digital Agent for Relationship Managers, the people who sit between the markets and global IT. Before it went anywhere near a wider rollout, someone had to answer a plain question for the CIO's office: is this ready to go live, fully or conditionally? Not whether the demo works. Whether it holds up with real people doing real tasks.",
+                            'Nestlé IT built one AI agent for the three roles that run enterprise IT: Relationship Managers, who sit between the markets and global IT; Product and Programme Managers, who own delivery; and Architects, who govern design and standards. Each role reaches its work through a different system.',
+                    },
+                    {
+                        kind: 'patch',
+                        model: {
+                            prompt: 'One agent, three roles, three systems. Follow the cables.',
+                            roles: [
+                                { key: 'rm', name: 'Relationship Managers' },
+                                { key: 'pm', name: 'Product Managers' },
+                                { key: 'arch', name: 'Architects' },
+                            ],
+                            systems: [
+                                { key: 'sp', name: 'SharePoint', when: 'May–June 2026', tested: 'Curated knowledge retrieval', sessions: '13 sessions across nine use cases, plus 6 re-tests' },
+                                { key: 'lx', name: 'LeanIX', when: 'June–July 2026', tested: 'Architecture and portfolio data, plus two new SharePoint sources', sessions: '6 moderated, 1 unmoderated' },
+                                { key: 'sn', name: 'ServiceNow', when: 'Oct–Nov 2026', tested: 'Incident, service-level and project data, in pre-production', sessions: '5 moderated sessions' },
+                            ],
+                            links: [
+                                { role: 'rm', system: 'sp', seats: '13 people, business and functional, in three zones' },
+                                { role: 'rm', system: 'lx', seats: '4 people' },
+                                { role: 'pm', system: 'lx', seats: '2 people' },
+                                { role: 'arch', system: 'lx', seats: '1 person' },
+                                { role: 'rm', system: 'sn', seats: '3 people' },
+                                { role: 'pm', system: 'sn', seats: '2 people' },
+                            ],
+                            note: 'Plus four sessions before the soft launch, two of them re-tests, on LeanIX and SharePoint: 35 sessions and 29 participant seats in all.',
+                        },
                     },
                     {
                         kind: 'text',
                         text:
-                            "The answer was a conditional go, and the conditions were specific. The use cases that cleared the bar went forward into the pilot launch. The rest came back with a named list of blockers, each traced to its cause and handed to the team that could fix it. A conditional go with a list is more useful than a yes. It tells the build team what to do on Monday, and it tells leadership exactly what they're accepting.",
+                            'Before each release, the CIO’s office needed a plain answer: is it ready to go live, fully or with conditions? That meant real people doing real tasks on the data they use, not a demo. Each round ended in a verdict against the bar. Use cases that cleared it moved forward; the rest came back with blockers for the team that could fix them.',
                     },
                     {
                         kind: 'text',
                         text:
-                            "The scores themselves are internal programme data, so they stay inside Nestlé. The method, the reasoning and the decision are what this page is about. I'm happy to walk through the rest in conversation.",
+                            'The verdicts did not always set the launch date, and that is part of the story. In May the result was a conditional go: launch waited until named issues were fixed with the platform partner. Leadership also asked for a clearer reason to use the agent instead of the general-purpose assistant people already had. The answer was to connect LeanIX, and that became the next round.',
+                    },
+                    {
+                        kind: 'gates',
+                        model: {
+                            prompt: 'Five gates on the road to launch. Drive to each one.',
+                            gates: [
+                                { when: 'May', title: 'First verdict', verdict: 'conditional', detail: 'Launch postponed until named fixes were made, and a clearer reason to use the agent' },
+                                { when: 'July', title: 'Soft-launch verdict', verdict: 'go', detail: 'Go with monitoring, with one hard gate' },
+                                { when: 'September', title: 'Soft launch', verdict: 'go', detail: 'About 120 users; 56 of them surveyed by October' },
+                                { when: 'Oct–Nov', title: 'ServiceNow version', verdict: 'conditional', detail: 'Research said go with fixes first; proposed to leadership as a conditional go' },
+                                { when: 'December', title: 'Full launch', verdict: 'planned', detail: 'Planned for 5,000 users' },
+                            ],
+                            note: 'Results so far are about readiness, use and trust. Value against a baseline is still to be shown.',
+                        },
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            'The agent is in soft launch, with a full launch planned for December, so this page covers results as well as decisions. It has not yet shown value against a baseline, and the next survey is built to measure that. The scores themselves stay inside Nestlé; the method, the reasoning and the decisions are what this page is about.',
                     },
                 ],
             },
@@ -145,29 +210,73 @@ export const caseStudies: Record<string, CaseStudy> = {
                 blocks: [
                     {
                         kind: 'quote',
-                        text: "Same use cases, same script, same kind of people, different model underneath. The verdict changed. The interface was never the whole story.",
+                        text: 'Without a bar agreed before anyone sits down, agent testing turns into an argument about whether an answer was good enough, and the loudest person in the room wins.',
                     },
                     {
-                        kind: 'chain',
+                        kind: 'bar',
                         model: {
-                            prompt: 'Where the evidence went, and what each step did with it.',
-                            steps: [
-                                { role: 'Research', hands: 'Scores every use case against the bar and names why each failure happened.' },
-                                { role: 'Leadership', hands: 'Turns the scores into a conditional go: what launches now, and what waits.' },
-                                { role: 'Build teams', hands: 'Get a blocker list sorted by cause, so each fix lands with the team that owns it.' },
+                            prompt: 'Same use case, same answer. Who decides the verdict?',
+                            zones: ['Wait', 'Conditional go', 'Go'],
+                            voices: [
+                                { name: 'The optimist', says: 'Good enough.' },
+                                { name: 'The sceptic', says: 'Not yet.' },
                             ],
-                            note: 'A verdict only travels if each link can act on it without going back to ask the researcher what it meant.',
+                            modes: { none: 'No bar agreed', set: 'Bar agreed first' },
+                            captions: {
+                                none: 'With no bar, the line sits wherever the loudest voice puts it.',
+                                set: 'The bar was agreed with leadership before anyone sat down, so it does not move.',
+                                verdictNone: ['Verdict: go, because someone said so.', 'Verdict: wait, because someone said so.'],
+                                verdictSet: 'Verdict: conditional go, whoever is in the room.',
+                            },
+                            note: 'The scores behind the bar stay inside Nestlé.',
                         },
                     },
                     {
                         kind: 'text',
                         text:
-                            "Between the two rounds, the model powering the agent was changed and nothing else moved: same nine use cases, same script, same participant profile. Use cases that failed in the first round cleared in the second, and confidently wrong answers went from a pattern to an exception. A controlled comparison like that gives leadership a reason to move, not an opinion to weigh.",
+                            'So I built the scoring engine first, and leadership agreed the approach. Every use case is scored out of 100: task completion weighs 70% and experience 30%, read across five indicators on a 1 to 7 scale (task completion, ease of use, cognitive load, expectations met and future perception). Seventy or above is a go, fifty to sixty-nine a conditional go, and below that it waits.',
                     },
                     {
                         kind: 'text',
                         text:
-                            "None of that came from a cleverer prompt. It came from treating the model underneath the agent as a design decision with measurable consequences, and testing it the way you would test a journey or a screen: real people, a scoring rubric, and a bar agreed in advance.",
+                            'During the May round, the model powering the agent changed and nothing else did, so the round became a controlled comparison. Use cases that failed before cleared after: when content was missing or stale, the new model said so instead of filling the gap.',
+                    },
+                    {
+                        kind: 'chat',
+                        model: {
+                            prompt: 'Same test, one layer changed: the model underneath the agent.',
+                            held: ['Nine use cases', 'The same script', 'The same participant profile'],
+                            changed: 'Changed: the model',
+                            situation: 'The source has no current figure, only an older one on an undated slide.',
+                            question: 'What is the current figure for this?',
+                            views: { person: 'What the person sees', real: 'What is really going on' },
+                            models: [
+                                {
+                                    key: 'a',
+                                    name: 'Model A',
+                                    tag: 'Before',
+                                    answer: 'The current figure is the one on the old slide.',
+                                    sees: 'Sounds certain. Nothing suggests checking it.',
+                                    really: 'Wrong. It treated the old, undated figure as current.',
+                                    verdict: 'Confidently wrong answers: a pattern',
+                                },
+                                {
+                                    key: 'b',
+                                    name: 'Model B',
+                                    tag: 'After',
+                                    answer: 'I can’t find a current figure in the sources. The only one is undated, so I wouldn’t rely on it.',
+                                    sees: 'Says it isn’t sure, so the person knows to check.',
+                                    really: 'Right to hold back. The source has no current figure.',
+                                    verdict: 'Confidently wrong answers: an exception',
+                                },
+                            ],
+                            note: 'An illustration of the behaviour, not a transcript. Six of the thirteen participants re-tested, so the people were held constant too.',
+                        },
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            'That came from treating the model as a design decision with measurable consequences, and testing it like a journey or a screen: real people, a scoring rubric, and a bar set in advance. One use case still did better on the old model. And content owners got a lesson of their own: sources need structure and dates, because the agent took a figure from an undated hidden slide as current.',
                     },
                 ],
             },
@@ -178,58 +287,110 @@ export const caseStudies: Record<string, CaseStudy> = {
                     {
                         kind: 'text',
                         text:
-                            "Fifteen moderated one-to-one sessions with Relationship Managers across three zones, each running real tasks against the nine use cases in scope. Scoring used a Go/No-Go rubric built to weight readiness rather than collect impressions. The rubric is the part that matters. Without a bar agreed before anyone sits down, agent testing collapses into an argument about whether an answer was good enough, and the loudest person in the room wins it.",
+                            'To a frustrated user, every failure looks the same: the agent did not help. Under a single accuracy score, it looks the same to leadership too. The most useful thing to come out of the testing was a way to tell the causes apart, because each one has a different owner and a different fix.',
                     },
                     {
-                        kind: 'text',
-                        text:
-                            "The most useful thing to come out of the round was a way to tell three failures apart that a frustrated user experiences as one and the same.",
-                    },
-                    {
-                        kind: 'matrix',
+                        kind: 'triage',
                         model: {
-                            prompt: 'Three failures, one symptom. Telling them apart is most of the job.',
-                            columns: ['What the user sees', 'What it actually is', 'What fixes it'],
-                            rows: [
+                            prompt: 'Three causes, one symptom. Telling them apart is most of the job.',
+                            symptom: 'The agent did not help',
+                            ask: 'Ask why',
+                            causes: [
                                 {
-                                    n: '01',
-                                    gap: 'Content gap',
-                                    cells: [
-                                        'The agent could not answer.',
-                                        'The knowledge base never held that answer.',
-                                        'Add the content. A librarian problem.',
-                                    ],
+                                    key: 'knowledge',
+                                    name: 'Knowledge gap',
+                                    sees: 'The agent could not answer, or answered from the wrong source.',
+                                    is: 'Missing, stale or poorly chosen content.',
+                                    fix: 'Curate and refresh the knowledge base.',
+                                    owner: 'Content and source owners',
                                 },
                                 {
-                                    n: '02',
-                                    gap: 'Accuracy failure',
-                                    cells: [
-                                        'The agent could not answer.',
-                                        'It held the content and still got it wrong.',
-                                        'Reground and retest. A trust problem.',
-                                    ],
+                                    key: 'defect',
+                                    name: 'AI defect',
+                                    sees: 'A wrong, looping or badly structured answer.',
+                                    is: 'The content was there and the agent still got it wrong.',
+                                    fix: 'Prompt, guardrails and validation, then retest.',
+                                    owner: 'Engineering and prompt design',
                                 },
                                 {
-                                    n: '03',
-                                    gap: 'Fabrication on tool failure',
-                                    cells: [
-                                        'A confident, plausible answer.',
-                                        'It could not reach the system and answered anyway.',
-                                        'Make it say it could not check. A safety problem.',
-                                    ],
+                                    key: 'capability',
+                                    name: 'Capability gap',
+                                    sees: 'The agent cannot reach the system or do the action.',
+                                    is: 'No connector or capability for that system yet.',
+                                    fix: 'Connectors and platform scope decisions.',
+                                    owner: 'Platform and infrastructure',
                                 },
                             ],
+                            note: 'After the first round, every open finding was routed this way, to the team that owns it.',
                         },
                     },
                     {
                         kind: 'text',
                         text:
-                            "Reported under a single accuracy score, all three look the same, and they need completely different fixes and completely different messaging to leadership. The third deserves naming plainly in executive updates rather than being folded into a number. It is the failure mode most likely to destroy trust the first time it happens in front of a real user rather than a moderator.",
+                            'A fourth failure appeared once the agent reached live systems. Connected to LeanIX, it sometimes could not retrieve an application by name, and the connector was suspected to be unstable. An agent that cannot reach a system may invent an answer, or return nothing at all. Before the soft launch I made the empty case a hard gate.',
+                    },
+                    {
+                        kind: 'hardgate',
+                        model: {
+                            prompt: 'Three answers. Only one of them hides.',
+                            answers: [
+                                { mock: 'right', label: 'A right answer' },
+                                { mock: 'wrong', label: 'A wrong answer' },
+                                { mock: 'empty', label: 'An empty answer' },
+                            ],
+                            person: 'Can the person tell?',
+                            gate: 'Hard gate',
+                            outcomes: {
+                                right: 'Arrives. Nothing went wrong.',
+                                wrong: 'Caught. The person can check it.',
+                                emptyOff: 'Arrives unseen. It looks as if nothing existed.',
+                                emptyOn: 'Stopped at the gate, before it reached anyone.',
+                            },
+                            captions: {
+                                off: 'Send the three answers through and see which one the person can catch.',
+                                on: 'With the hard gate on, send them through again.',
+                            },
+                            note: 'A wrong answer can be caught. An empty one looks as if nothing existed, which is why it became a hard gate before the soft launch.',
+                        },
                     },
                     {
                         kind: 'text',
                         text:
-                            "The round left two reusable assets behind as well, one for synthesis and one for reporting, so the next wave of testing does not start from a blank page.",
+                            'Findings stay on three layers that never merge: the model, the agent’s interface, and the system and process around it. That keeps the routing honest, and it is why the silent failure gets named plainly in executive updates: it will do the most damage to trust the first time a real user meets it.',
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            'Once the soft launch was live, I went back to the raw survey responses, because the first summary undersold the evidence. I removed repeat submissions, checked the conclusions held without non-users, and rebuilt the story as a funnel: understanding, ease, resolution, speed. The leak was resolution. Leadership heard one message: resolving more queries is the next value lever, starting with ServiceNow, the system respondents named without being asked.',
+                    },
+                    {
+                        kind: 'funnel',
+                        model: {
+                            prompt: 'The survey funnel, and the stage where it leaked',
+                            stages: [
+                                { name: 'Understanding', line: 'The first stage of the funnel. Not where it leaked.' },
+                                { name: 'Ease', line: 'The second stage. Not where it leaked.' },
+                                { name: 'Resolution', line: 'This is where it leaked. Resolving more queries is the next value lever, starting with ServiceNow, the system respondents named without being asked.' },
+                                { name: 'Speed', line: 'The last stage. Not where it leaked.' },
+                            ],
+                            leak: 2,
+                            note: 'Rebuilt from the raw survey responses: repeat submissions removed, conclusions checked without non-users.',
+                        },
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            'The ServiceNow round tested incident and service-level data on pre-production, and added indicators: trust, better decisions, speed, which skill the agent used, and a pass rule per task. The gaps were not about usability. The agent confused where a ticket was raised with the market it affected, keyword matching pulled in off-topic tickets, and it did not ask a clarifying question when scope or acronyms were ambiguous.',
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            'Data quality set the ceiling: the test data was a month old, and impact fields were filled in inconsistently. Participants ran analyses they would not otherwise have had time for, such as ticket timelines and trends. The research verdict was go, with scope filtering and clarifying questions fixed first; five sessions are a weak signal, so these are patterns to validate on live data.',
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            'No time or cost saving has been measured yet. Three things are built to measure it: the next survey, with a task baseline and time saved against it; a success scorecard, reviewed with change management, that measures task completion and net time saved per use case; and a scale-gate review in December.',
                     },
                 ],
             },
@@ -240,12 +401,22 @@ export const caseStudies: Record<string, CaseStudy> = {
                     {
                         kind: 'text',
                         text:
-                            "The model underneath an agent is a design decision, not an implementation detail. I suspected that going in. The controlled comparison made it hard to argue with: when the verdict moves that far on the same use cases, script and participants, most of what people experience as interface quality is coming from somewhere else.",
+                            'The model underneath an agent is a design decision, not an implementation detail. I suspected that going in. The controlled comparison made it hard to argue with: when the verdict moves that far on the same use cases, most of what people experience as interface quality comes from somewhere else.',
                     },
                     {
                         kind: 'text',
                         text:
-                            "The other lesson is about how you report a failure. Telling leadership an accuracy percentage gives them nothing they can act on. Telling them it invents an answer when it cannot reach a system tells them what to fix and what it costs if they do not. Testing an agent is as much about building the vocabulary to describe how it fails as it is about measuring whether it works.",
+                            'The second lesson is about reporting a failure. An accuracy percentage gives leadership nothing to act on. Saying the agent invents an answer when it cannot reach a system tells them what to fix and what it costs if they do not. Testing an agent means building the words to describe how it fails, as much as measuring whether it works.',
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            'The third is that one agent is not one product to test. Three roles reach it through three systems, so it has three sets of ways to fail, and a single test round on a single data source would have hidden most of them.',
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            'The fourth is that a conditional go only works if the conditions are concrete. In May the conditions had names, owners and a partner to fix them with, so a postponement became a plan. It is also why the agent now connects to LeanIX and ServiceNow.',
                     },
                 ],
             },
@@ -259,9 +430,9 @@ export const caseStudies: Record<string, CaseStudy> = {
             'Redesigning how a 270,000-person enterprise discovers, evaluates, and adopts its own IT, from a catalog no one trusted to a governed, end-to-end offering.',
         facts: [
             { value: '40+', label: 'In-depth interviews' },
-            { value: '70+', label: 'Survey responses' },
+            { value: '71', label: 'Survey responses' },
             { value: '58%', label: 'Reported shadow initiatives' },
-            { value: '6', label: 'Challenges prioritised' },
+            { value: '6', label: 'Systemic challenges surfaced' },
         ],
         sections: [
             {
@@ -271,7 +442,7 @@ export const caseStudies: Record<string, CaseStudy> = {
                     {
                         kind: 'text',
                         text:
-                            'Nestlé IT ran hundreds of IT products globally, but markets often couldn’t find them, didn’t trust them, and built their own instead. The catalog was incomplete and overly technical. Approval spanned five governance layers with no clear decision rights. And 58% of stakeholders reported shadow initiatives emerging whenever alignment broke down. The result was duplicated investment, eroding trust in central IT, and slower digital acceleration.',
+                            'Nestlé IT ran 315 IT products across 16 streams, but markets often couldn’t find them, didn’t trust them, and built their own instead. The catalog was incomplete and overly technical. Approval spanned five governance layers with no clear decision rights. And 58% of stakeholders reported shadow initiatives emerging whenever alignment broke down. The result was duplicated investment, eroding trust in central IT, and slower digital acceleration. The aim was speed, clarity and better decisions, without adding a single new gate.',
                     },
                     {
                         kind: 'iceberg',
@@ -290,7 +461,7 @@ export const caseStudies: Record<string, CaseStudy> = {
                     {
                         kind: 'text',
                         text:
-                            'By the close, the enterprise had a single, evidence-based view of the full offering journey: how a market raises a request, and how a solution is then found, funded, and adopted. That map became a strategic input for sizing AI and automation opportunities across IT workflows, and its insights went straight into the APM intake process, so real user friction now shapes how new solutions enter the ecosystem. Journey Management was established as a repeatable model the organisation could reuse.',
+                            'By the close, the enterprise had one evidence-based view of the full offering journey: how a market raises a request, and how a solution is then found, funded and adopted. The map became an input for sizing AI and automation opportunities, and its insights went into the intake process for new solutions, so real friction now shapes how they enter. Journey Management became a model the organisation can reuse. In 2026 its method carried into the research on key IT roles, and in May IT leadership proposed it as the design base for catalogue enhancements. What it doesn’t have yet is a measured baseline: catalogue use, approval time and first-time-right are still to be re-measured.',
                     },
                 ],
             },
@@ -303,14 +474,23 @@ export const caseStudies: Record<string, CaseStudy> = {
                         text: 'The problem was never the products. It was that the system had no shared way to find, evaluate, or fund them.',
                     },
                     {
-                        kind: 'text',
-                        text:
-                            '54% of people relied on personal networks and informal channels over the official catalog. Only 25% felt delivery pace met business needs. 66% found the approval path hard to navigate. Markets weren’t rejecting IT solutions. They couldn’t see them, and when they could, they couldn’t get them fast enough.',
+                        kind: 'gauges',
+                        model: {
+                            prompt: 'Four findings from the research. Press one.',
+                            idle: 'Press a ring to read what it measured.',
+                            stats: [
+                                { key: 'shadow', value: 58, label: 'reported shadow initiatives', line: '58% of stakeholders reported shadow initiatives, built whenever alignment broke down.' },
+                                { key: 'network', value: 54, label: 'relied on personal networks', line: '54% of people relied on personal networks and informal channels over the official catalog.' },
+                                { key: 'approval', value: 66, label: 'found approval hard to navigate', line: '66% of people found the approval path hard to navigate.' },
+                                { key: 'pace', value: 25, label: 'felt delivery pace met their needs', line: 'Only 25% felt delivery pace met business needs.' },
+                            ],
+                            note: 'Share of the people in the research who said so.',
+                        },
                     },
                     {
                         kind: 'text',
                         text:
-                            'That reframed the brief from “improve the catalog” to “redesign the whole offering experience, discovery through governance to adoption.” Six systemic challenges surfaced with high confidence: discoverability relied on workarounds, urgent demand dominated intake, roadmap visibility was weak, delivery felt too slow, planning cycles were misaligned, and shadow initiatives filled the gaps.',
+                            'Markets weren’t rejecting IT solutions. They couldn’t see them, and when they could, they couldn’t get them fast enough. That reframed the brief from “improve the catalog” to “redesign the whole offering experience, discovery through governance to adoption.” Six systemic challenges surfaced with high confidence: discoverability relied on workarounds, urgent demand dominated intake, roadmap visibility was weak, delivery felt too slow, planning cycles were misaligned, and shadow initiatives filled the gaps.',
                     },
                     {
                         kind: 'gallery',
@@ -330,20 +510,111 @@ export const caseStudies: Record<string, CaseStudy> = {
                             'As Lead Design Researcher and Service Designer, I owned research strategy, synthesis, journey mapping, and facilitation end to end. That meant designing the instruments, running statistical sample sizing at 95% confidence, and mentoring a graduate researcher while aligning with the Product Owner.',
                     },
                     {
-                        kind: 'text',
-                        text:
-                            'The evidence base: 40+ interviews across Business Relationship Managers, Functional Relationship Managers, Product Owners, and market stakeholders, plus a 70+ response survey. I distilled it into six high-confidence insight cards linking cause, evidence, and business impact, then diagnosed twelve pain points and prioritised six for intervention.',
+                        kind: 'trail',
+                        model: {
+                            prompt: 'From evidence to roadmap, six stations',
+                            idle: 'Press a station to see what happened there.',
+                            stations: [
+                                { key: 'evidence', name: 'Evidence', line: 'Interviews across relationship managers, product owners, programme managers and market representatives in three zones, plus a survey. Most findings rest on the 48 relationship managers analysed.', facts: ['40+ interviews', '71 survey responses'] },
+                                { key: 'insight', name: 'Insight', line: 'Distilled into six high-confidence insight cards, each linking cause, evidence and business impact.', facts: ['6 insight cards'] },
+                                { key: 'diagnosis', name: 'Diagnosis', line: 'Twelve pain points, each with a how-might-we question and an impact rating.', facts: ['12 pain points'] },
+                                { key: 'map', name: 'Mapping', line: 'The full journey, three Moments That Matter, a stakeholder map across the Business and IT layers, and four enterprise personas.', facts: ['3 moments that matter', '4 personas'] },
+                                { key: 'cocreate', name: 'Co-creation', line: 'Ten sessions across three zones, from kick-off to roadmap, staggered so each zone’s ideas were stress-tested by the next. Invitees came from 12 countries in Asia-Pacific, Africa and the Americas, plus the Europe core team.', facts: ['10 sessions', '12 countries'] },
+                                { key: 'roadmap', name: 'Roadmap', line: 'Six solution directions, three prioritised, each with an owner, a roadmap and a success metric. Then the roadmap was back-cast from the future state: the steps, sequencing and ownership needed to reach it.', facts: ['6 directions', '3 prioritised'] },
+                            ],
+                        },
                     },
                     {
                         kind: 'text',
                         text:
-                            'I mapped the full end-to-end journey, from demand intake through qualification, decision-making, and request to deployment and roll-out. From that I named three Moments That Matter (Decision Velocity, Priority at Intake, and Findability at Discovery) and built a stakeholder map across the Business and IT layers.',
+                            'I mapped the full end-to-end journey, from demand intake through qualification, decision-making, and request to deployment and roll-out. From that I named three Moments That Matter (Priority & Demand at Intake, Findability & Foresight at Discovery, and Decision Velocity & Value) and built a stakeholder map across the Business and IT layers.',
                     },
                     {
-                        kind: 'gallery',
-                        items: [
-                            { src: `${ITPO_IMG}/Journey-Pain-Points-Light.png`, alt: 'End-to-end IT product offering journey across four stages (Trigger, Understand, Initiate, and Complete or Roll Out), with a full grid of pain points mapped beneath each stage', caption: 'The end-to-end offering journey, demand intake to roll-out, with pain points mapped across every stage', w: 4233, h: 4751 },
-                        ],
+                        kind: 'offering',
+                        model: {
+                            prompt: 'The offering journey as one map. Press a step.',
+                            idle: 'Press a step to light its column and read what each lane holds.',
+                            stages: [
+                                { name: 'Trigger', steps: [0, 1] },
+                                { name: 'Understand', steps: [2, 3] },
+                                { name: 'Initiate', steps: [4, 5] },
+                                { name: 'Complete / Roll Out', steps: [6, 7] },
+                            ],
+                            lanes: [
+                                { key: 'users', name: 'Business users' },
+                                { key: 'front', name: 'Frontstage' },
+                                { key: 'back', name: 'Backstage' },
+                                { key: 'external', name: 'External' },
+                            ],
+                            touchpoints: 'Collaboration tools, email, spreadsheets, dashboards, a catalogue and request systems',
+                            steps: [
+                                {
+                                    key: 'intake',
+                                    name: 'Demand intake',
+                                    moment: 'Priority & Demand at Intake',
+                                    users: 'A market has a need and shares it informally, often with an urgent timeline.',
+                                    front: 'Relationship managers confirm the business context and separate the need from the solution.',
+                                    back: 'Global teams sometimes reach out to markets directly.',
+                                    themes: ['Lack of cross-market demand visibility', 'Unclear requirements and solution-first requests', '“Urgent” requests and misaligned prioritisation', 'Limited local-global collaboration'],
+                                },
+                                {
+                                    key: 'qualify',
+                                    name: 'Qualification & prioritisation',
+                                    front: 'Managers prioritise requests by market urgency and size.',
+                                    themes: ['“Urgent” requests and misaligned prioritisation', 'Unclear requirements and solution-first requests', 'Role clarity and empowerment'],
+                                },
+                                {
+                                    key: 'discover',
+                                    name: 'Solution discovery',
+                                    moment: 'Findability & Foresight at Discovery',
+                                    front: 'Managers and product owners check whether a solution already exists.',
+                                    back: 'Product owners share which products and solutions are available.',
+                                    themes: ['Limited visibility of existing solutions', 'Lack of cross-market demand visibility'],
+                                },
+                                {
+                                    key: 'decide',
+                                    name: 'Decision making',
+                                    users: 'Markets review the global solution against their local needs.',
+                                    front: 'Managers weigh the global solution against local needs and integration feasibility.',
+                                    external: 'Local vendors present their solution to the market.',
+                                    themes: ['Global vs. local solution friction', 'Small-market funding and attention'],
+                                },
+                                {
+                                    key: 'request',
+                                    name: 'Request',
+                                    moment: 'Decision Velocity & Value',
+                                    users: 'Markets start the process with local vendors, through procurement.',
+                                    front: 'Managers prepare the business case, sometimes with the market.',
+                                    back: 'Product owners review the business case.',
+                                    themes: ['Small-market funding and attention', 'Unclear criteria and roles in governance'],
+                                },
+                                {
+                                    key: 'plan',
+                                    name: 'Planning & development',
+                                    moment: 'Decision Velocity & Value',
+                                    users: 'Markets commit the funding and enable the resources.',
+                                    front: 'Roles and responsibilities are defined across teams, and funding is agreed with finance.',
+                                    back: 'Planning, compliance and integration checks.',
+                                    themes: ['Complex and fragmented approval path', 'Unclear criteria and roles in governance', 'Role clarity and empowerment'],
+                                },
+                                {
+                                    key: 'deploy',
+                                    name: 'Deployment & adoption',
+                                    front: 'Managers share the implementation plan with market stakeholders and confirm local readiness.',
+                                    back: 'Product owners lead development with operations, and the solution is deployed.',
+                                    external: 'Local vendors start deploying the product in the market.',
+                                    themes: ['Slow global deployment and rollout timing', 'Role clarity and empowerment'],
+                                },
+                                {
+                                    key: 'support',
+                                    name: 'Post-launch support',
+                                    front: 'Managers, markets and product owners track how the product is used.',
+                                    external: 'The local application goes live.',
+                                    themes: ['Limited local-global collaboration', 'Post-deployment support and ownership gaps'],
+                                },
+                            ],
+                            note: 'A representation of the journey map, with its structure and pain-point themes and none of its detail. No system, vendor or person is named.',
+                        },
                     },
                     {
                         kind: 'text',
@@ -359,7 +630,22 @@ export const caseStudies: Record<string, CaseStudy> = {
                     {
                         kind: 'text',
                         text:
-                            'I then facilitated a three-session stakeholder workshop, research sharing then ideation then planning, which produced prioritised solutions with clear ownership, success metrics, and roadmaps. Together the core team defined the future-state vision: Discoverability over Complexity, Clarity over Ambiguity, Efficiency over Redundancy, Transparency over Opacity, and Seamless Experience over Fragmentation. AI and automation readiness was a stakeholder non-negotiable, so it went in as a design requirement from the start.',
+                            'I then ran the co-creation: a kick-off, a research-sharing session, three rounds of ideation staggered across the zones, and a roadmap wrap-up. It produced prioritised solutions with clear ownership, success metrics, and roadmaps. Together the core team defined the future-state vision, as five shifts. AI and automation readiness was a stakeholder non-negotiable, so it went in as a design requirement from the start.',
+                    },
+                    {
+                        kind: 'shifts',
+                        model: {
+                            prompt: 'The future state, as five shifts. Press one.',
+                            idle: 'Press a shift to move its bead from the problem to the principle.',
+                            shifts: [
+                                { key: 'find', from: 'Complexity', to: 'Discoverability', line: 'Solutions people can find, described in words they use.' },
+                                { key: 'clear', from: 'Ambiguity', to: 'Clarity', line: 'Decision rights and approval criteria that are written down.' },
+                                { key: 'efficient', from: 'Redundancy', to: 'Efficiency', line: 'One investment, not the same thing built twice.' },
+                                { key: 'transparent', from: 'Opacity', to: 'Transparency', line: 'A roadmap people can actually see.' },
+                                { key: 'seamless', from: 'Fragmentation', to: 'Seamless experience', line: 'One journey, not a hand-off at every stage.' },
+                            ],
+                            note: 'Discoverability over complexity, clarity over ambiguity, efficiency over redundancy, transparency over opacity, and seamless experience over fragmentation.',
+                        },
                     },
                     {
                         kind: 'gallery',
@@ -372,7 +658,7 @@ export const caseStudies: Record<string, CaseStudy> = {
                     {
                         kind: 'text',
                         text:
-                            'Finally, I connected directly with the owner of each prioritised solution to test feasibility, define dependencies, and validate scope. Then I built the roadmap by back-casting from the future state, working backwards to the concrete steps, sequencing, and ownership needed to reach it.',
+                            'Finally, I connected directly with the owner of each prioritised solution to test feasibility, define dependencies, and validate scope. Then I built the roadmap by back-casting from the future state, working backwards to the concrete steps, sequencing, and ownership needed to reach it. I also scored the relationship managers’ journey atlas on reach, impact, effort and frequency, so the next priorities rest on evidence.',
                     },
                 ],
             },
@@ -388,7 +674,7 @@ export const caseStudies: Record<string, CaseStudy> = {
                     {
                         kind: 'text',
                         text:
-                            'It also showed how far evidence travels when it’s framed as a system. The same journey map that diagnosed the problem became the input for AI-use-case sizing and for redesigning the intake process. One well-mapped journey turned out to be enough to align product, process, and automation teams around a single shared reality.',
+                            'It also showed how far evidence travels when it’s framed as a system. The same journey map that diagnosed the problem became the input for AI-use-case sizing and for redesigning the intake process. One well-mapped journey turned out to be enough to align product, process, and automation teams around a single shared reality. What it still lacks is measurement: catalogue use, approval time and first-time-right were never re-measured, and the 2024 catalogue baseline is where that starts.',
                     },
                 ],
             },
@@ -397,15 +683,14 @@ export const caseStudies: Record<string, CaseStudy> = {
     '#it-key-roles': {
         href: '#it-key-roles',
         kicker: 'Organisation · Nestlé IT · 2026',
-        positioning: 'Three roles studied as one chain, not three separate populations',
         title: 'IT Key Roles Journey Atlas',
         summary:
-            "Mapping what the three roles that run enterprise IT actually do all day, then reading their problems against each other to find out where a single AI agent could genuinely help all three.",
+            'Mapping what the roles that run enterprise IT do all day, then reading their problems against each other to find where one AI agent could help all of them.',
         facts: [
-            { value: '4 of 33', label: 'Opportunities selected to build' },
-            { value: '1', label: 'Agent, not three role tools' },
-            { value: '3', label: 'Roles mapped as one chain' },
-            { value: '20+', label: 'Interviews and sessions' },
+            { value: '6 of 41', label: 'Opportunities selected to build' },
+            { value: 'All 6', label: 'Selected opportunities with a business case' },
+            { value: '4', label: 'Roles mapped as one chain' },
+            { value: '9', label: 'IT streams across 3 zones' },
         ],
         sections: [
             {
@@ -415,29 +700,35 @@ export const caseStudies: Record<string, CaseStudy> = {
                     {
                         kind: 'text',
                         text:
-                            "Leadership decided that transforming Nestlé IT would start with the experience of the people inside it, and that the first move would be an AI assistant built for three roles. Relationship Managers, who sit between the markets and global IT. Product and Programme Managers, who own delivery across the product lifecycle. Architects, who govern design and standards. The brief that reached research was not to go and find some AI use cases. It was to establish what these roles actually do, where the work breaks, and which of those breaks an agent can honestly fix.",
+                            'In December 2025, Nestlé IT’s leadership decided that transforming IT would start with the people inside it, and that the first move would be digital assistants for key IT roles. The CIO’s office commissioned the research, across three zones and nine IT streams.',
                     },
                     {
                         kind: 'text',
                         text:
-                            "The obvious way to run that is three studies. We ran one. The three roles are consecutive links in the same chain. Run them separately and you get three tool wishlists. Run them as a system and you find out where their problems are the same problem wearing different clothes.",
+                            'It covered three roles: Relationship Managers, business, functional and zone, who sit between the markets and global IT; Product and Programme Managers, who own delivery; and Architects across enterprise, solution and specialist roles, who govern design and standards. Research had to establish what they do, where their work breaks, and which breaks an agent can fix.',
                     },
                     {
-                        kind: 'chain',
+                        kind: 'text',
+                        text:
+                            'The obvious plan was three studies. We ran one, because the three roles are links in the same chain. Studied separately, they produce three tool wishlists. Studied together, they show where their problems are the same problem wearing different clothes.',
+                    },
+                    {
+                        kind: 'ripple',
                         model: {
-                            prompt: 'What does each role hand to the next?',
-                            steps: [
-                                { role: 'Relationship Manager', hands: 'Consolidates what the markets are asking for into one zone-level demand.' },
-                                { role: 'Product Manager', hands: 'Turns that demand into a roadmap and a prioritisation call.' },
-                                { role: 'Architect', hands: 'Inherits both as a design and governance constraint.' },
+                            prompt: 'What does each role hand to the next? Weaken one link.',
+                            idle: 'Press a role to make it the weak link and see what lands on the others.',
+                            links: [
+                                { key: 'rm', role: 'Relationship Manager', hands: 'Consolidates what the markets are asking for into one zone-level demand.', bad: 'Demand arrives un-consolidated.' },
+                                { key: 'pm', role: 'Product Manager', hands: 'Turns that demand into a roadmap and a prioritisation call.', bad: 'Prioritisation gets noisy.' },
+                                { key: 'arch', role: 'Architect', hands: 'Inherits both as a design and governance constraint.', bad: 'Rework surfaces late and costs the most to undo.' },
                             ],
-                            note: 'A weakness in one link lands on the next. Demand that arrives un-consolidated becomes noisy prioritisation, which becomes architectural rework that surfaces late and costs the most to undo.',
+                            note: 'A weakness in one link lands on the next.',
                         },
                     },
                     {
                         kind: 'text',
                         text:
-                            "By August 2026 the programme had three validated journey atlases, three pain-point libraries traceable back to source, and a scored opportunity backlog for each role. Thirty-three opportunities were scored across the Relationship Manager and Product Manager tracks, and four came out of that selected to build, now queued to go into the Digital Agent itself. Nothing has shipped yet and the architect track is still in detailing, so this is a decision record rather than a results record. The finding that shaped the product direction did not come from any single role, though. It came from reading the three backlogs against each other.",
+                            'By September 2026 each role had a validated journey atlas and a signed-off backlog. Of 41 opportunities scored, seven were signed off; one was later dropped, leaving six, and all six now have a business case. Business Analysts joined as a fourth role in September. Delivery sits in the 2027 roadmap, and none has shipped, so this is a record of decisions, not results.',
                     },
                 ],
             },
@@ -447,22 +738,22 @@ export const caseStudies: Record<string, CaseStudy> = {
                 blocks: [
                     {
                         kind: 'quote',
-                        text: "Not every friction point is something an agent can fix. Some of it is a missing rule, and no amount of AI makes up for a rule that nobody has written yet.",
+                        text: 'Not every friction point is something an agent can fix. Some of it is a missing rule, and no amount of AI makes up for a rule that nobody has written yet.',
                     },
                     {
                         kind: 'text',
                         text:
-                            "Three capability gaps turned up in all three roles, wearing different clothes each time. Read across a row and it is one problem, not three.",
+                            'Three capability gaps turned up in all three roles, in a different form each time. Read across a row and it is one problem.',
                     },
                     {
-                        kind: 'matrix',
+                        kind: 'gaps',
                         model: {
-                            prompt: 'The same three gaps, seen from three desks.',
-                            columns: ['Relationship Manager', 'Product Manager', 'Architect'],
-                            rows: [
+                            prompt: 'The same three gaps, seen from three desks. Pick one.',
+                            roles: ['Relationship Manager', 'Product Manager', 'Architect'],
+                            gaps: [
                                 {
-                                    n: '01',
-                                    gap: 'Find what exists',
+                                    key: 'find',
+                                    name: 'Find what exists',
                                     cells: [
                                         'Has another market already solved this, or already tried and dropped it?',
                                         'How is this product actually doing, and where does it land locally?',
@@ -470,8 +761,8 @@ export const caseStudies: Record<string, CaseStudy> = {
                                     ],
                                 },
                                 {
-                                    n: '02',
-                                    gap: 'Frame the request',
+                                    key: 'frame',
+                                    name: 'Frame the request',
                                     cells: [
                                         'Consolidate scattered regional requirements into one credible ask.',
                                         'Shape demand into something estimable and fundable.',
@@ -479,8 +770,8 @@ export const caseStudies: Record<string, CaseStudy> = {
                                     ],
                                 },
                                 {
-                                    n: '03',
-                                    gap: 'Navigate the process',
+                                    key: 'navigate',
+                                    name: 'Navigate the process',
                                     cells: [
                                         'Grey-zone ownership, and when to escalate.',
                                         'Compliance, contracts and procurement.',
@@ -488,18 +779,44 @@ export const caseStudies: Record<string, CaseStudy> = {
                                     ],
                                 },
                             ],
-                            note: 'This is the correlation the programme was run to find. It is also the reason the answer is one agent rather than three role tools.',
+                            note: 'This is the correlation the programme was run to find. It is also the reason the answer is one agent experience rather than three role tools.',
                         },
                     },
                     {
                         kind: 'text',
                         text:
-                            "That reframed the product. Three roles asking for three tools becomes one agent with three shared capabilities, which is a different investment case and a different design problem. It also gave leadership a value narrative rather than a complaint list, which is usually the difference between research that gets funded and research that gets filed. The gap that scored highest of all, discovering whether something already exists somewhere in the organisation, is now one of the four opportunities selected to build.",
+                            'That changed the product. Three roles asking for three tools became one agent experience with shared capabilities: a different investment case and a different design problem. The six selections now read as one chain: discover, assess, reuse, structure, guide and automate. The “find what exists” gap appears in it once per role, and the opportunity that scored highest for Relationship Managers is one of them.',
+                    },
+                    {
+                        kind: 'sixchain',
+                        model: {
+                            prompt: 'The six selections, read as one chain',
+                            roles: [
+                                { key: 'rm', name: 'Relationship Managers' },
+                                { key: 'pm', name: 'Product Managers' },
+                                { key: 'arch', name: 'Architects' },
+                            ],
+                            steps: [
+                                { key: 'discover', name: 'Discover', role: 'rm', opportunity: 'Solution discovery', line: 'Finding out whether something already exists elsewhere in the organisation. It scored highest in the Relationship Manager backlog.' },
+                                { key: 'assess', name: 'Assess', role: 'rm', opportunity: 'Portfolio visibility', line: 'Seeing how the portfolio is doing, for relationship managers, portfolio managers and leadership.' },
+                                { key: 'reuse', name: 'Reuse', role: 'arch', opportunity: 'See and reuse what is already built', line: 'A building block to reuse, instead of designing it again.' },
+                                { key: 'structure', name: 'Structure', role: 'arch', opportunity: 'A first architecture document, drafted for you', line: 'Drafted from approved content, with gaps flagged before review. A human stays in the loop.' },
+                                { key: 'guide', name: 'Guide', role: 'pm', opportunity: 'AI-guided standards execution', line: 'The anchor for product managers. It sits where delivery work already happens, not in a new tool.' },
+                                { key: 'automate', name: 'Automate', role: 'pm', opportunity: 'AI-automated project setup', line: 'Added in September, beside the anchor.' },
+                            ],
+                            idle: 'Press a step to see whose it is.',
+                            note: 'The “find what exists” gap appears in the chain once per role.',
+                        },
                     },
                     {
                         kind: 'text',
                         text:
-                            "Underneath all three sat the same root cause, and it was not a technology gap. Knowledge lives in people rather than in systems, so the answer you get depends on who you happen to ask. Fragmented tooling makes it worse: the pieces of any given answer sit in half a dozen platforms that cannot be queried together. An agent grounded in that inherits all of it, which is why data quality kept surfacing as the prerequisite rather than the nice-to-have.",
+                            'Underneath all three sat the same root cause, and it was not technology. Knowledge lives in people, so the answer depends on who you ask, and the pieces of any answer sit in half a dozen platforms, from the product catalogue to LeanIX, ServiceNow and SharePoint, that cannot be searched together. An agent grounded in that inherits all of it.',
+                    },
+                    {
+                        kind: 'text',
+                        text:
+                            'The Relationship Manager and Product Manager sign-offs reached the same verdict independently: no quick wins. Every strong opportunity is a bet, high in impact and medium in feasibility, and data quality, governance and process standardisation are bigger constraints than the technology.',
                     },
                 ],
             },
@@ -510,77 +827,157 @@ export const caseStudies: Record<string, CaseStudy> = {
                     {
                         kind: 'text',
                         text:
-                            "As lead design researcher and service designer I owned the arc end to end across all three roles: the journey atlas hypotheses and the personas, the interviews, the co-creation and opportunity-shaping sessions, the pain-point libraries and their provenance, the translation from pain into scored opportunity, and the cross-role correlation that tied the three backlogs into one story.",
+                            'As lead design researcher and service designer, I owned the research across all three roles, from the first journey hypotheses to the cross-role reading that tied three backlogs into one story. Each role went through the same arc: a journey hypothesis from job profiles and desk research (for Architects, a synthetic user), validation with practitioners, then interviews and co-creation at task level.',
                     },
                     {
                         kind: 'text',
                         text:
-                            "Every role went through the same arc, which is what makes the three comparable at the end. Build a journey hypothesis from job profiles and desk research, validate it with practitioners, rate each stage on reach, effort and frequency to decide where to dig, then interview and co-create at task level to surface pain points and trace each one back to a root cause. What comes out is not a findings deck. Each role got a journey atlas drawn across three levels of detail with a persona beside it, and that is the artefact the organisation goes on operating: teams point at it, argue with it, and reuse it long after the study closes.",
+                            'Each role got a journey atlas at three levels of detail, with its own personas. Every pain point carries its stage, its job to be done, a severity and a verbatim quote, so a claim can be traced to its source. Stages were prioritised on reach, effort and frequency, and opportunities scored on desirability, viability and feasibility with the Value team, who built the business cases on the same frame.',
                     },
                     {
-                        kind: 'text',
-                        text:
-                            "Every pain point carries its stage, its job to be done, a severity and a verbatim quote, so a claim can be walked back to its source when a steering committee pushes on it. Opportunities were then clustered into areas and scored on desirability, viability and feasibility, five-point scales with defined sub-criteria. Missing evidence lowers a score rather than being waved through, which is the part that keeps the exercise honest. Thirty-three opportunities were scored this way across the Relationship Manager and Product Manager tracks.",
-                    },
-                    {
-                        kind: 'roletrack',
+                        kind: 'atlas',
                         model: {
-                            prompt: "Same programme, three different clocks. Where each role actually stands, not where a roadmap slide says it stands.",
-                            stages: ['Journey atlas', 'Pain points', 'Opportunity scoring', 'Signed off'],
-                            rows: [
+                            prompt: 'What a journey atlas is made of. Zoom in one level at a time.',
+                            levels: [
                                 {
-                                    role: 'Relationship Managers',
-                                    stageIndex: 3,
-                                    status: 'Atlas validated, pain points clustered into five opportunity areas, nine opportunities scored and three selected to build. Signed off in July 2026, with a deliberate strategy of expanding around one anchor and reusing shared components.',
-                                    metrics: [
-                                        { value: '5', label: 'opportunity areas' },
-                                        { value: '9', label: 'opportunities scored' },
-                                        { value: '3', label: 'selected to build' },
-                                    ],
+                                    short: 'Lifecycle',
+                                    name: 'Level 0: the lifecycle',
+                                    nng: 'NN/g L0 · lifecycle',
+                                    purpose: 'The role’s top objective, from start to finish. One map that holds every other map.',
+                                    answers: 'What is this role ultimately trying to achieve?',
                                 },
                                 {
-                                    role: 'Product & Programme Managers',
-                                    stageIndex: 3,
-                                    status: 'Journey validated across eight interviews, then a workshop that clustered six opportunity areas and twenty-four opportunities. One anchor opportunity selected in July 2026, sited where delivery work already happens rather than in a new tool.',
-                                    metrics: [
-                                        { value: '6', label: 'opportunity areas' },
-                                        { value: '24', label: 'opportunities scored' },
-                                        { value: '1', label: 'anchor selected' },
-                                    ],
+                                    short: 'Stages',
+                                    name: 'The stage band',
+                                    nng: 'NN/g domain',
+                                    purpose: 'Groups related journeys into a stretch of the lifecycle. It is the natural level to assign ownership if the atlas grows to several roles.',
+                                    answers: 'Which stretch of the lifecycle is this, and who owns it?',
                                 },
                                 {
-                                    role: 'Architects',
-                                    stageIndex: 2,
-                                    status: 'Survey, interviews and two rounds of co-creation across the architecture community. Forty pain points validated, with the backlog concentrating on the architecture review process.',
-                                    pending: 'Scored results: not yet, opportunity detailing is still running',
+                                    short: 'Journeys',
+                                    name: 'Level 1: journey maps',
+                                    nng: 'NN/g L1 · macro journey',
+                                    purpose: 'Each journey is a milestone in the lifecycle: something the role is trying to achieve before moving on. Most traditional journey maps live here, and it is where a pilot starts and metrics attach.',
+                                    answers: 'What is the role trying to get done at this milestone?',
+                                    extra: 'The narrow bars between journeys are gates: governance checks that must pass before the next journey begins.',
+                                },
+                                {
+                                    short: 'Jobs to be done',
+                                    name: 'Job to be done',
+                                    nng: 'Names each L1',
+                                    purpose: 'One sentence per journey: as this role, I need to do this, so that this happens. It names the journey from the person’s goal, not from a system or a team, and it is the test for whether a journey belongs in the atlas.',
+                                    answers: 'Why does this journey exist, and for whom?',
+                                },
+                                {
+                                    short: 'Tasks',
+                                    name: 'Task level: mini journey maps',
+                                    nng: 'NN/g L2 or L3',
+                                    purpose: 'The tasks inside each journey, each tagged with how the role takes part. This is where pain points attach, with their stage, severity and a verbatim quote, and where the interviews and co-creation happen.',
+                                    answers: 'What does the role actually do, and who owns each task?',
                                 },
                             ],
+                            tags: [
+                                { key: 'autonomous', name: 'Autonomous', line: 'I take the full ownership.' },
+                                { key: 'joint', name: 'Joint', line: 'I share the ownership with someone.' },
+                                { key: 'accountable', name: 'Accountable', line: 'I have the accountability instead of the responsibility.' },
+                                { key: 'supporting', name: 'Supporting', line: 'I mainly support, without holding accountability or responsibility.' },
+                            ],
+                            note: 'An illustration of the structure, drawn with placeholders. It is not a real atlas. Based on the Nielsen Norman Group’s approach to journey atlases.',
+                        },
+                    },
+                    {
+                        kind: 'clocks',
+                        model: {
+                            prompt: 'Same programme, four different clocks',
+                            stages: ['Journey atlas', 'Pain points', 'Opportunity scoring', 'Signed off', 'Business case', 'Build'],
+                            idle: 'Press a dial to see where that role stands and how it got there.',
+                            roles: [
+                                {
+                                    key: 'rm',
+                                    name: 'Relationship Managers',
+                                    stage: 4,
+                                    status: 'Signed off in July 2026. Pain points clustered into five opportunity areas, nine opportunities scored and three signed off: discovering existing solutions, portfolio visibility and application adoption. Adoption was later dropped, so two go forward, both with a business case, built to expand around one anchor and reuse shared components.',
+                                    facts: ['~92 pain points in the first draft journey', '5 opportunity areas', '9 scored', '2 in the business case'],
+                                },
+                                {
+                                    key: 'pm',
+                                    name: 'Product & Programme Managers',
+                                    stage: 4,
+                                    status: 'Signed off in July and September 2026. Journey validated across eight interviews. A February workshop named Plan & Envision the critical phase; the longlist was refined to twenty-four opportunities and scored. The anchor, AI-guided standards execution, sits where delivery work already happens rather than in a new tool, with AI-automated project setup added beside it in September.',
+                                    facts: ['8 validation interviews', '6 opportunity areas', '24 scored', '2 selected'],
+                                },
+                                {
+                                    key: 'arch',
+                                    name: 'Architects',
+                                    stage: 4,
+                                    status: 'Signed off in September 2026. Journey validated with the Principal Enterprise Architect in June, then a stage-prioritisation survey, interviews with six architects, three co-creation sessions and five opportunity-detailing sessions. Two of eight opportunities selected: seeing and reusing what is already built, and a first architecture document drafted for you. The other six stay in the backlog.',
+                                    facts: ['6 architects interviewed', '40 pain points validated', '8 opportunities in 3 areas', '2 selected'],
+                                },
+                                {
+                                    key: 'ba',
+                                    name: 'Business Analysts',
+                                    stage: 0,
+                                    status: 'Added in September at the request of Americas IT, for an estimated 300 Business Analysts. Journey and persona hypothesis built from the Business Analyst and Business Systems Analyst role profiles. The workshop is confirmed for January 2027.',
+                                    facts: ['2 role profiles in scope', '~300 Business Analysts (estimate)'],
+                                },
+                            ],
+                            note: 'Where each role stands today, not where a roadmap slide says it does. Build is in the 2027 roadmap.',
                         },
                     },
                     {
                         kind: 'text',
                         text:
-                            "One boundary is worth recording, because it shows where the programme drew its line. People management surfaced in the Product Manager work as real, repeated friction, and it was mapped rather than quietly dropped. It was then deliberately left out of the opportunity set: the remit here was IT for IT, and capability building and people management sit within HR's own transformation work, so the same line was held for Architects and Relationship Managers too. Knowing what not to design is part of the job.",
+                            'Relationship Managers need to tell one credible story about what their zone needs, and their most common ask was to know whether another market had already solved the problem. The opportunities selected for them were not the three highest scores: discovery ranked first, portfolio visibility fourth and adoption ninth. They were chosen together, to cover the journey end to end and help portfolio managers and leadership too.',
                     },
                     {
                         kind: 'text',
                         text:
-                            "Relationship Managers sit between the markets and global IT, so their real job is to tell one credible story about what a zone needs. They could not, and the most common ask was simply to know whether another market had already solved the problem. Requirements, market data and roadmap decisions lived in different systems, so shared demand stayed invisible and kept breaking back apart into isolated market requests. Five opportunity areas came out of that work, with nine scored opportunities under them.",
+                            'Architects are a bottleneck by design: work queues behind them while their time goes on reading long documents late in the process. Around a quarter of their forty validated pain points sit in the architecture review, and half are gaps, not faults: the structure exists, but nobody has written the reusable content, so every architect starts from scratch.',
                     },
                     {
                         kind: 'text',
                         text:
-                            "The three selected were not the three highest scores. They were chosen because together they cover the journey end to end and pay off past the role itself, reaching business relationship managers, portfolio managers and leadership. That is a service design call rather than a ranking exercise: what matters is what the set does as a system, not which card wins on its own. The portfolio read that came with it was blunt, and worth repeating to anyone hoping for a fast win. There are no pure quick wins in the set, and data quality, governance and process standardisation are all bigger constraints than the technology.",
+                            'The architects set one guardrail: full automation of the review is out of bounds, and a human stays in the loop for compliance-critical steps. So the opportunity is to restructure authoring, not to auto-approve: find reusable designs, then draft the document from approved content and flag gaps before review.',
+                    },
+                    {
+                        kind: 'guardrail',
+                        model: {
+                            prompt: 'The architects’ guardrail on a review',
+                            labels: { agent: 'The agent helps', human: 'A human stays' },
+                            idle: 'Press a step to see what the agent does and where a human stays.',
+                            steps: [
+                                { key: 'find', name: 'Find reusable designs', by: 'agent', line: 'Search what is already built, so no architect starts from scratch.' },
+                                { key: 'draft', name: 'Draft from approved content', by: 'agent', line: 'Write the document from content that is already approved.' },
+                                { key: 'flag', name: 'Flag gaps', by: 'agent', line: 'Show what is missing before a human reads it.' },
+                                { key: 'review', name: 'Review and approve', by: 'human', line: 'Compliance-critical steps keep a human in the loop.' },
+                            ],
+                            blocked: { name: 'Auto-approve', line: 'Full automation of the review is out of bounds. The opportunity is to restructure authoring, not to auto-approve.' },
+                            note: 'The architects set this guardrail themselves.',
+                        },
                     },
                     {
                         kind: 'text',
                         text:
-                            "Architects are a bottleneck by design, which is the polite way of saying work queues behind them while their time goes on reading long documents late in the process instead of on design itself. Of forty validated pain points, around a quarter concentrate on the architecture review process and the forums around it. Half of the forty are gaps rather than faults: the structure exists, but nobody has filled in the reusable content, so every architect rebuilds from scratch.",
+                            'Four alignment sessions, with security, enterprise architecture and the teams running its platform and its review redesign, then changed the strategy. Make existing specifications searchable before building AI drafting; join the security automation already under way; treat approvals as an accountability problem, because the workflow already exists. Curated data is the real deliverable, and the agent is how people reach it.',
                     },
                     {
-                        kind: 'text',
-                        text:
-                            "The guardrail the architects set stayed in the write-up: no full automation of the architecture review, because compliance-critical steps need a human on them. The opportunity is to restructure how the document gets authored, holding it as fields to answer instead of a blank page, and to pre-check a draft against standards before it reaches review. It does not approve anything.",
+                        kind: 'field',
+                        model: {
+                            prompt: 'Every scored opportunity, and what became of it',
+                            roles: [
+                                { key: 'rm', name: 'Relationship Managers', total: 9, case: 2, dropped: 1 },
+                                { key: 'pm', name: 'Product Managers', total: 24, case: 2, dropped: 0 },
+                                { key: 'arch', name: 'Architects', total: 8, case: 2, dropped: 0 },
+                            ],
+                            discovery: { name: 'Business Analysts', line: 'Business Analysts join as a fourth role: a journey and persona hypothesis now, a workshop in January 2027.' },
+                            steps: [
+                                { key: 'scored', label: '1 · Scored', headline: '41 scored', line: 'Nine Relationship Manager, 24 Product Manager and eight Architect opportunities, scored on desirability, viability and feasibility.' },
+                                { key: 'signed', label: '2 · Signed off', headline: '7 signed off', line: 'Seven were signed off across the three sign-offs: two for Product Managers, two for Architects and three for Relationship Managers.' },
+                                { key: 'dropped', label: '3 · One dropped', headline: '7 − 1 dropped = 6', line: 'Application adoption was dropped after sign-off, which left six.' },
+                                { key: 'case', label: '4 · Business case', headline: '6 in the business case, 34 in the backlog', line: 'All six now carry a business case, with the build in the 2027 roadmap. The other 34 stay scored in the backlog for later waves, across all three roles.' },
+                            ],
+                            note: 'The release testing on the Digital Agent page decides what the agent can do today. This pipeline decides what it learns next.',
+                        },
                     },
                 ],
             },
@@ -589,23 +986,33 @@ export const caseStudies: Record<string, CaseStudy> = {
                 heading: 'What I learnt',
                 blocks: [
                     {
-                        kind: 'quote',
-                        text: "A security agent is only ever as good as the security standard behind it. If that standard does not exist yet, the problem is not an AI problem. It is a policy problem wearing an AI costume.",
+                        kind: 'text',
+                        text:
+                            'People made the point in the interviews: an agent is only as good as the curated knowledge behind it. So the most useful move was typing every opportunity by what it needs.',
+                    },
+                    {
+                        kind: 'fixes',
+                        model: {
+                            prompt: 'Four kinds of fix. Only one is an AI capability.',
+                            idle: 'Press a kind to see what it needs.',
+                            types: [
+                                { key: 'ai', name: 'AI capability', needs: 'Something an agent can actually do.', then: 'Build it into the agent.' },
+                                { key: 'process', name: 'Process fix', needs: 'A change to how the work runs.', then: 'Leadership can fund it as a process fix, not as an automation.' },
+                                { key: 'governance', name: 'Governance decision', needs: 'A rule that somebody has to write.', then: 'No amount of AI makes up for a rule nobody has written. On the architect backlog, approval was an accountability problem, not a tooling one.' },
+                                { key: 'data', name: 'Data standard', needs: 'Curated, structured knowledge to draw on.', then: 'Curated data is the real deliverable, and the agent is how people reach it.' },
+                            ],
+                            note: 'Every opportunity was typed this way, so the backlog doesn’t fill with automation ideas that need a rule nobody has written.',
+                        },
                     },
                     {
                         kind: 'text',
                         text:
-                            "The most useful move in the whole programme was not a research technique, it was a naming convention: tagging every opportunity as either an AI opportunity or a policy opportunity. It stops a backlog quietly filling with automation ideas that cannot ship because the rule they depend on does not exist. It also gives leadership a fair way to fund process fixes without dressing them up as AI work to get the budget released.",
+                            'The architect sign-off proved it. Two of three opportunity areas were set aside, not because AI could not help, but because the security work was already under way elsewhere and approval was an accountability problem, not a tooling one. The same line held the scope: people management came up as real friction and became a seventh stage of the Product Manager atlas, but stayed out of the agent backlog.',
                     },
                     {
                         kind: 'text',
                         text:
-                            "Studying the roles as a chain rather than a set is what produced the finding worth having. Three separate studies would have delivered three credible backlogs and missed the point, which is that the same three gaps run through all of them. The correlation was the deliverable. The individual atlases were the raw material.",
-                    },
-                    {
-                        kind: 'text',
-                        text:
-                            "What is still missing is the last link, and I would rather say so than round it up. None of this has been measured after deployment. Estimated value is not demonstrated value, and until the prioritised use cases ship and get measured against a baseline, that stays an open item rather than a result.",
+                            'What is still missing is the last link, and I would rather say so. None of the selected opportunities has been measured after deployment. Estimated value is not demonstrated value. The next step is to agree a baseline now, per use case, while the business cases are fresh, so the 2027 build can be judged against something real.',
                     },
                 ],
             },
@@ -636,7 +1043,7 @@ export const caseStudies: Record<string, CaseStudy> = {
                     {
                         kind: 'text',
                         text:
-                            'By the close, the organisation could see the full meeting journey in one connected view for the first time, with telemetry, sentiment, and pain points together. Two interventions shipped in the Canada market: a meeting-room tagging system and a new in-room post-meeting survey. The survey opened a feedback loop that lifted detection of malfunctioning room technology by 10%. Experience-Level Agreements (XLAs) moved from theory into practice, the OCIO endorsed the method to scale, and the work defined how the new Journey Management team operates.',
+                            'By the close, the organisation could see the full meeting journey in one connected view for the first time, with telemetry, sentiment and pain points together. Two changes shipped in Canada, and one of them lifted detection of faulty room technology by 10%. Experience-Level Agreements (XLAs) moved from theory into practice, IT leadership endorsed the method to scale, and the work defined how the new Journey Management team operates.',
                     },
                 ],
             },
@@ -702,7 +1109,7 @@ export const caseStudies: Record<string, CaseStudy> = {
                     {
                         kind: 'text',
                         text:
-                            'Two insights went all the way to delivery, both launched first in the Canada market. A room-tagging system built into Outlook let employees search and filter meeting rooms by setup and equipment, a direct fix for one of the most common points of friction in finding the right room. And a short post-meeting survey, triggered in the room itself, created an entirely new stream of experience data. Inside that loop, detection of malfunctioning meeting-room technology rose by 10%.',
+                            'Two insights went all the way to delivery, both launched first in Canada. A room-tagging system in Outlook let employees filter meeting rooms by setup and equipment, a direct fix for one of the most common frictions in finding the right room. A short post-meeting survey, triggered in the room itself, created a new stream of experience data, and with it, detection of faulty room technology rose by 10%.',
                     },
                 ],
             },
@@ -713,7 +1120,7 @@ export const caseStudies: Record<string, CaseStudy> = {
                     {
                         kind: 'text',
                         text:
-                            'The most impactful intervention wasn’t a new feature. It was helping the organisation see its own experience as one connected system rather than a collection of tools owned by separate teams.',
+                            'The change that mattered most was the organisation seeing its meetings as one connected system, instead of a set of tools each owned by a separate team.',
                     },
                     {
                         kind: 'text',

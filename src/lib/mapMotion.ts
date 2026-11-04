@@ -12,16 +12,17 @@ import { easeOutExpo, rgbOf, type OffsetOf } from '@/lib/mapPaint';
  */
 
 // The tempo table: nothing on the map answers the pointer faster than ~400 ms.
-const HOVER_IN = 450;   // a node and its neighbourhood lift
-const HOVER_OUT = 600;  // and settle back, a little slower than they rose
-const FOCUS = 800;      // other clusters recede while the camera flies
-const RIPPLE = 650;     // one ring from a clicked node
-const RIPPLE_GROW = 28; // px the ring travels, screen space
+const HOVER_IN = 600;   // a node and its neighbourhood lift
+const HOVER_OUT = 900;  // and settle back, slower than they rose
+const FOCUS = 1000;     // other clusters recede while the camera flies
+const RIPPLE = 1100;    // one soft wave, only for clicks that open no window
+const RIPPLE_GROW = 36; // px the wave travels, screen space
 /** Camera flight between areas; the focus fade rides inside it. */
-export const FLY_MS = 1200;
+export const FLY_MS = 1400;
 
 interface Tw { from: number; to: number; t0: number; dur: number }
-interface Live { id: string; color: string; s: number }
+// `held`: lifted because a window is open from it (no growth), not by hover.
+interface Live { id: string; color: string; s: number; held: boolean }
 
 /** Eased scalars keyed by name; 0 when never set. */
 class Tweens {
@@ -135,13 +136,13 @@ export function useMapMotion(data: SystemMapData | null, focused: number | null,
     /** onRenderFramePre: advance the clock and collect the nodes currently lifted. */
     const framePre = useCallback(() => {
         tw.tick();
-        const byId = new Map<string, number>();
+        const next: Live[] = [];
         for (const k of [...tw.keys('h:'), ...tw.keys('a:')]) {
             const s = tw.value(k);
             const id = k.slice(2);
-            if (s > 0.001) byId.set(id, Math.max(byId.get(id) ?? 0, s));
+            if (s > 0.001) next.push({ id, color: colorOf.get(id) ?? '#2B2A29', s, held: k.startsWith('a:') });
         }
-        live.current = [...byId].map(([id, s]) => ({ id, color: colorOf.get(id) ?? '#2B2A29', s }));
+        live.current = next;
     }, [tw, colorOf]);
 
     /** onRenderFramePost: draw ripples (graph space), then rest when nothing moves. */
@@ -158,8 +159,10 @@ export function useMapMotion(data: SystemMapData | null, focused: number | null,
                 const c = rgbOf(n.color);
                 ctx.beginPath();
                 ctx.arc((n.x ?? 0) + ox, (n.y ?? 0) + oy, base + (RIPPLE_GROW * e) / scale, 0, Math.PI * 2);
-                ctx.lineWidth = 1.5 / scale;
-                ctx.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},${(0.5 * (1 - u)).toFixed(3)})`;
+                // A thin wave that fades as it travels, slowest at the end, so it is
+                // seen leaving rather than flashing.
+                ctx.lineWidth = 1.1 / scale;
+                ctx.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},${(0.4 * Math.pow(1 - u, 1.4)).toFixed(3)})`;
                 ctx.stroke();
             }
             if (!tw.busy() && ripples.current.length === 0) setBusy(false);
@@ -175,8 +178,11 @@ export function useMapMotion(data: SystemMapData | null, focused: number | null,
             let self = 0;
             let near = 0;
             for (const h of live.current) {
-                if (h.id === id) self = h.s;
-                else if (adj.get(h.id)?.has(id)) near = Math.max(near, h.s);
+                // Hover grows the bead itself; a held node only comes forward in depth.
+                if (h.id === id) {
+                    if (h.held) near = Math.max(near, h.s);
+                    else self = Math.max(self, h.s);
+                } else if (adj.get(h.id)?.has(id)) near = Math.max(near, h.s);
             }
             return { self, near };
         },

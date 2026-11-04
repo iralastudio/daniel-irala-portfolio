@@ -11,6 +11,9 @@ import { useAccessibility } from '@/hooks/useAccessibility';
  * shapes are shared here.
  */
 
+/** The window's reveal and the camera dolly that lands with it (ms; = --dur-window). */
+export const WINDOW_MS = 1300;
+
 /** Entrances, camera-paired tweens, the window reveal. */
 export const EXPO = [0.16, 1, 0.3, 1] as const;
 /** Clip-path image reveals only (Phase 5). */
