@@ -55,6 +55,9 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
     const [isHydrated, setIsHydrated] = useState(false);
 
     useEffect(() => {
+        // Waived, not fixed: Stage A of the review changes no behaviour, and this
+        // provider is rebuilt in Stage C (docs/review/phase-3.md, slice C3).
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsHydrated(true);
     }, []);
 
