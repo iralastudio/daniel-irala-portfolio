@@ -1,0 +1,39 @@
+name: CI
+
+# Type check, lint, production build and smoke tests. Lighthouse is deliberately
+# not here: shared runners give noisy numbers, so it stays a local script
+# (scripts/lighthouse.mjs).
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+      # Uses the Google Chrome preinstalled on ubuntu-latest (channel: chrome in
+      # playwright.config.ts), so there is no browser download step.
+      - run: npm run test:smoke
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
